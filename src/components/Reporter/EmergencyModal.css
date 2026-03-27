@@ -1,0 +1,88 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.emergency-overlay {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.emergency-card {
+  width: 90%;
+  max-width: 480px;
+  padding: 32px;
+  text-align: center;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 2px solid var(--danger);
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.emergency-icon {
+  margin-bottom: 16px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.emergency-card h2 {
+  color: var(--danger);
+  margin-bottom: 16px;
+  font-size: 1.5rem;
+}
+
+.emergency-message {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  color: #333;
+  text-align: left;
+  border-left: 4px solid var(--danger);
+}
+
+.countdown {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.countdown span {
+  color: var(--danger);
+}
+
+.emergency-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.emergency-actions .btn {
+  flex: 1;
+}
+
+.emergency-call {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.emergency-call:hover {
+  background: var(--danger);
+  color: white;
+}
