@@ -240,6 +240,26 @@ ${content}`;
     alert(`写真から撮影日（${formatted}）を取得しました`);
   };
 
+  // 最終送信：Supabase に保存してから画面をリセット
+  const handleConfirm = async () => {
+    const { error } = await supabase.from('reports').insert({
+      genre:       formData.genre,
+      department:  formData.department,
+      work_date:   formData.date,
+      has_problem: formData.hasIssue === 'yes',
+    });
+
+    if (error) {
+      console.error('[Supabase] 報告書の保存に失敗しました:', error);
+      alert('送信に失敗しました。\n' + error.message);
+      return;
+    }
+
+    alert('報告書を送信しました！');
+    localStorage.removeItem('re_report_autosave');
+    window.location.reload();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const defs  = GENRE_FIELD_DEFS[formData.genre];
@@ -262,11 +282,7 @@ ${content}`;
       <PreviewScreen
         data={{ ...formData, content: buildContent(), photos }}
         onBack={() => setShowPreview(false)}
-        onConfirm={() => {
-          alert('送信完了しました！');
-          localStorage.removeItem('re_report_autosave');
-          window.location.reload();
-        }}
+        onConfirm={handleConfirm}
       />
     );
   }

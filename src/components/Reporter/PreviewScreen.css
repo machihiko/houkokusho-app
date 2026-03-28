@@ -118,11 +118,16 @@
 
 /* ── 写真セクション ───────────────────────── */
 .excel-photos {
+  /* 画面幅によらず常に2列固定 */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 0;
   border: 1px solid #BDBDBD;
   background: #fff;
+  /* PC など広い画面で1列あたりが大きくなりすぎないよう制限 */
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .excel-photo-item {
@@ -141,9 +146,21 @@
 
 .excel-photo-img {
   width: 100%;
-  height: 160px;
+  /* アスペクト比を維持しつつ正方形に近い枠に収める */
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
+}
+
+/* スマホ：2列を維持しつつ写真間に適度な余白を確保 */
+@media (max-width: 480px) {
+  .excel-photos {
+    gap: 2px;
+  }
+
+  .excel-photo-img {
+    aspect-ratio: 4 / 3;
+  }
 }
 
 /* ── フッター ─────────────────────────────── */
