@@ -6,6 +6,8 @@ import './PhotoUploader.css';
 
 const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
   const [error, setError] = useState('');
+  // 拡大表示するBlobURL（nullなら非表示）
+  const [modalUrl, setModalUrl] = useState(null);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
@@ -54,20 +56,26 @@ const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
       <div className="photo-grid">
         {photos.map((photo, index) => (
           <div key={index} className="photo-preview">
-            <img src={photo.url} alt={`preview ${index}`} />
+            {/* クリックで拡大モーダルを開く */}
+            <img
+              src={photo.url}
+              alt={`preview ${index}`}
+              onClick={() => setModalUrl(photo.url)}
+              className="photo-thumb"
+            />
             <button type="button" className="remove-photo-btn" onClick={() => removePhoto(index)}>
               <X size={14} />
             </button>
           </div>
         ))}
-        
+
         {photos.length < 3 && (
           <label className="upload-btn">
-            <input 
-              type="file" 
-              accept="image/*" 
-              multiple 
-              onChange={handleFileChange} 
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
               style={{ display: 'none' }}
             />
             <Camera size={24} color="var(--primary)" />
@@ -75,8 +83,27 @@ const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
           </label>
         )}
       </div>
-      
+
       {error && <div className="error-text mt-2">{error}</div>}
+
+      {/* 拡大モーダル：オーバーレイクリックで閉じる */}
+      {modalUrl && (
+        <div className="photo-modal-overlay" onClick={() => setModalUrl(null)}>
+          <img
+            src={modalUrl}
+            alt="拡大表示"
+            className="photo-modal-img"
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            className="photo-modal-close"
+            onClick={() => setModalUrl(null)}
+          >
+            <X size={22} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

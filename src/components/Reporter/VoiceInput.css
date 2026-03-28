@@ -1,75 +1,64 @@
-.voice-input-container {
+/* コンパクトなインライン音声入力ボタン */
+.voice-input-inline {
   display: flex;
   align-items: center;
-  gap: 12px;
-  position: relative;
+  gap: 6px;
 }
 
-.voice-btn {
-  background: var(--surface);
-  border: 1px solid var(--primary);
-  color: var(--primary);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+.voice-btn-inline {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: white;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s;
+  flex-shrink: 0;
 }
 
-.voice-btn:hover {
-  background: var(--primary-light);
-  color: white;
+.voice-btn-inline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
 }
 
-.voice-btn.recording-active {
-  background: var(--danger);
+.voice-btn-inline.recording-active {
+  background: #fee2e2;
   border-color: var(--danger);
-  color: white;
-  animation: pulse-danger 1.5s infinite;
+  color: var(--danger);
+  animation: voice-pulse 1s ease-in-out infinite;
 }
 
-@keyframes pulse-danger {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+@keyframes voice-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
 }
 
-.voice-visualizer {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  height: 24px;
+/* 録音中の赤い点滅ドット */
+.voice-recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+  animation: voice-blink 1s ease-in-out infinite;
 }
 
-.voice-visualizer .bar {
-  width: 4px;
-  background-color: var(--primary);
-  border-radius: 2px;
-  animation: equalize 1s infinite alternate;
+@keyframes voice-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
 }
 
-.voice-visualizer .bar:nth-child(1) { height: 12px; animation-duration: 0.4s; }
-.voice-visualizer .bar:nth-child(2) { height: 24px; animation-duration: 0.7s; }
-.voice-visualizer .bar:nth-child(3) { height: 16px; animation-duration: 0.5s; }
-.voice-visualizer .bar:nth-child(4) { height: 20px; animation-duration: 0.6s; }
-
-@keyframes equalize {
-  0% { height: 8px; }
-  100% { height: 24px; }
-}
-
-.voice-transcript-preview {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+/* 認識中テキストのプレビュー */
+.voice-live-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  pointer-events: none;
 }

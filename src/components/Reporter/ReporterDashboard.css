@@ -1,9 +1,11 @@
 .reporter-container {
-  max-width: 800px;
+  /* スクロールバー有無に関わらず幅を固定する */
+  width: min(800px, 100%);
   margin: 0 auto;
   padding: 24px;
   animation: fadeIn 0.4s ease-out;
-  overflow-x: hidden;
+  /* 横方向の意図しない伸縮を防ぐ */
+  flex-shrink: 0;
 }
 
 @keyframes fadeIn {
@@ -301,4 +303,49 @@ input:checked + .slider:before {
   font-size: 0.95rem;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+/* ジャンル別入力フィールドセクション */
+.genre-fields-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(37, 99, 235, 0.03);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.genre-fields-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.genre-field-area {
+  resize: none;
+  line-height: 1.6;
+}
+
+/* 備考欄トグル */
+.memo-toggle {
+  margin-top: 4px;
+}
+
+.memo-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.memo-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
 }

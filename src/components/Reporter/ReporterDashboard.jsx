@@ -1,29 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../AuthContext';
 import EmergencyModal from './EmergencyModal';
-import VoiceInput from './VoiceInput';
 import PhotoUploader from './PhotoUploader';
 import PreviewScreen from './PreviewScreen';
+import VoiceInput from './VoiceInput';
 import { Save, Send, LogOut, AlertTriangle, Bot, Loader } from 'lucide-react';
 import './ReporterDashboard.css';
 
 const GENRES = [
-  { id: 'cleaning', label: '清掃', template: '【清掃場所】\n【清掃内容】\n【特記事項】' },
-  { id: 'inspection', label: '点検', template: '【点検項目】\n【異常の有無】無・有\n【所見】' },
-  { id: 'repair', label: '修理', template: '【対象箇所】\n【症状】\n【対応内容】' }
+  { id: 'cleaning',   label: '清掃' },
+  { id: 'inspection', label: '点検' },
+  { id: 'repair',     label: '修理' },
 ];
+
+// ジャンルごとの入力フィールド定義
+const GENRE_FIELD_DEFS = {
+  inspection: [
+    { key: 'item',        label: '点検項目',   type: 'textarea',
+      placeholder: '例：空調機フィルター、消火設備、排水ポンプ など' },
+    { key: 'hasAnomaly',  label: '異常の有無',  type: 'radio',
+      options: [{ value: 'no', label: '無' }, { value: 'yes', label: '有' }] },
+    { key: 'findings',    label: '所見',       type: 'textarea',
+      placeholder: '例：フィルターに詰まりあり。清掃・交換が必要。' },
+  ],
+  cleaning: [
+    { key: 'place',  label: '清掃場所',  type: 'textarea',
+      placeholder: '例：3階エントランス、駐車場B区画 など' },
+    { key: 'work',   label: '清掃内容',  type: 'textarea',
+      placeholder: '例：床面モップ掛け、ガラス清拭、ゴミ回収' },
+    { key: 'notes',  label: '特記事項',  type: 'textarea',
+      placeholder: '例：特になし / 落書きを発見、管理者へ報告済み' },
+  ],
+  repair: [
+    { key: 'target',  label: '対象箇所',   type: 'textarea',
+      placeholder: '例：西館2F トイレ 水栓レバー' },
+    { key: 'symptom', label: '症状',       type: 'textarea',
+      placeholder: '例：レバー操作時に水が止まらない' },
+    { key: 'action',  label: '対応内容',   type: 'textarea',
+      placeholder: '例：パッキン交換により修理完了' },
+  ],
+};
+
+// ジャンル別フィールドの初期値
+const INITIAL_GENRE_FIELDS = {
+  inspection: { item: '', hasAnomaly: 'no', findings: '' },
+  cleaning:   { place: '', work: '', notes: '' },
+  repair:     { target: '', symptom: '', action: '' },
+};
 
 const ReporterDashboard = () => {
   const { logout, user } = useAuth();
-  const [showEmergency, setShowEmergency] = useState(false); // 一時的にオフ
+  const [showEmergency, setShowEmergency] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [photos, setPhotos] = useState([]);
 
-  // Form State
+  // フォーム基本情報
   const [formData, setFormData] = useState({
     genre: 'cleaning',
-    content: GENRES[0].template,
     department: '',
     hasIssue: 'no',
     issueDetail: '',
@@ -31,13 +65,58 @@ const ReporterDashboard = () => {
     date: new Date().toISOString().split('T')[0],
   });
 
+  // ジャンル別入力フィールド
+  const [genreFields, setGenreFields] = useState(INITIAL_GENRE_FIELDS);
+
+  // 備考欄
+  const [showMemo, setShowMemo] = useState(false);
+  const [memo, setMemo] = useState('');
+
   const [validationError, setValidationError] = useState('');
   const [useAI, setUseAI] = useState(false);
   const [aiFeedback, setAiFeedback] = useState('');
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
-  // AI赤ペン先生：トグル操作（Gemini REST API を fetch で直接呼び出し）
-  // React 19 の async onChange 問題を避けるため .then()/.catch() 形式で記述
+  // 現在ジャンルの全入力を1つの文章に結合（PreviewScreen・AI・Excel共用）
+  const buildContent = () => {
+    const defs = GENRE_FIELD_DEFS[formData.genre];
+    const fields = genreFields[formData.genre];
+    const lines = defs.map(def => {
+      if (def.type === 'radio') {
+        const optLabel = def.options.find(o => o.value === fields[def.key])?.label ?? fields[def.key];
+        return `【${def.label}】${optLabel}`;
+      }
+      return `【${def.label}】${fields[def.key]}`;
+    });
+    if (showMemo && memo.trim()) {
+      lines.push(`【備考】${memo}`);
+    }
+    return lines.join('\n');
+  };
+
+  // ジャンルフィールドを1項目更新
+  const updateGenreField = (key, value) => {
+    setGenreFields(prev => ({
+      ...prev,
+      [formData.genre]: { ...prev[formData.genre], [key]: value },
+    }));
+  };
+
+  // 音声入力の結果をジャンルフィールドに追記
+  const appendToGenreField = (key, text) => {
+    setGenreFields(prev => {
+      const current = prev[formData.genre][key];
+      return {
+        ...prev,
+        [formData.genre]: {
+          ...prev[formData.genre],
+          [key]: current ? `${current}\n${text}` : text,
+        },
+      };
+    });
+  };
+
+  // AI赤ペン先生トグル
   const handleAIToggle = () => {
     if (useAI) {
       setUseAI(false);
@@ -57,6 +136,7 @@ const ReporterDashboard = () => {
     }
 
     const genre = GENRES.find(g => g.id === formData.genre)?.label || formData.genre;
+    const content = buildContent();
     const prompt = `あなたは現場報告書の添削AIです。以下の報告書の内容を読み、不明確な点・不足している情報・改善すべき表現について日本語で具体的にアドバイスしてください。箇条書きで簡潔に3点以内でまとめてください。問題がなければ「特に指摘はありません」と答えてください。
 
 【ジャンル】${genre}
@@ -64,7 +144,7 @@ const ReporterDashboard = () => {
 【問題の有無】${formData.hasIssue === 'yes' ? '有り' : '無し'}
 ${formData.issueDetail ? `【問題の詳細】${formData.issueDetail}` : ''}
 【報告内容】
-${formData.content}`;
+${content}`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     console.log('[AI] Fetching:', url.replace(apiKey, apiKey.slice(0, 8) + '...'));
@@ -98,34 +178,43 @@ ${formData.content}`;
         setAiFeedbackLoading(false);
       });
   };
-  // const [toastMessage, setToastMessage] = useState(''); // 通知を一時的にオフ
 
   useEffect(() => {
-    // Check local storage for saved data
     const saved = localStorage.getItem('re_report_autosave');
-    if (saved) {
-      setShowRecoveryDialog(true);
-    }
+    if (saved) setShowRecoveryDialog(true);
   }, []);
 
+  // 自動保存（2秒デバウンス）
   useEffect(() => {
-    // Auto-save logic (debounced)
     const handler = setTimeout(() => {
-      if (formData.content || formData.department) {
-        localStorage.setItem('re_report_autosave', JSON.stringify({ ...formData, timestamp: Date.now() }));
-        // setToastMessage('下書きを自動保存しました');
-        // setTimeout(() => setToastMessage(''), 3000);
+      const currentFields = genreFields[formData.genre];
+      const hasInput = formData.department ||
+        Object.values(currentFields).some(v => typeof v === 'string' && v.trim() && v !== 'no');
+      if (hasInput) {
+        localStorage.setItem('re_report_autosave', JSON.stringify({
+          ...formData, genreFields, showMemo, memo, timestamp: Date.now(),
+        }));
       }
     }, 2000);
-
     return () => clearTimeout(handler);
-  }, [formData]);
+  }, [formData, genreFields, showMemo, memo]);
 
   const recoverData = (accept) => {
     if (accept) {
       try {
         const saved = JSON.parse(localStorage.getItem('re_report_autosave'));
-        setFormData((prev) => ({ ...prev, ...saved }));
+        setFormData(prev => ({
+          ...prev,
+          genre:       saved.genre       ?? prev.genre,
+          department:  saved.department  ?? prev.department,
+          hasIssue:    saved.hasIssue    ?? prev.hasIssue,
+          issueDetail: saved.issueDetail ?? prev.issueDetail,
+          hasDelay:    saved.hasDelay    ?? prev.hasDelay,
+          date:        saved.date        ?? prev.date,
+        }));
+        if (saved.genreFields) setGenreFields(saved.genreFields);
+        if (saved.showMemo != null) setShowMemo(saved.showMemo);
+        if (saved.memo != null) setMemo(saved.memo);
       } catch (e) {
         console.error('Failed to parse autosave data', e);
       }
@@ -136,14 +225,12 @@ ${formData.content}`;
   };
 
   const handleGenreChange = (genreId) => {
-    const genre = GENRES.find(g => g.id === genreId);
-    // 清掃に切り替えたときは進捗の遅れをリセット
     setFormData(prev => ({
       ...prev,
       genre: genreId,
-      content: genre.template,
       hasDelay: genreId === 'cleaning' ? 'no' : prev.hasDelay,
     }));
+    setShowMemo(false);
   };
 
   const handleDateExtracted = (extractedDate) => {
@@ -152,14 +239,17 @@ ${formData.content}`;
     alert(`写真から撮影日（${formatted}）を取得しました`);
   };
 
-  const handleVoiceInput = (text) => {
-    setFormData(prev => ({ ...prev, content: prev.content + '\n' + text }));
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.department || !formData.content.trim()) {
-      setValidationError('部署名と報告内容は必須です。');
+    const defs  = GENRE_FIELD_DEFS[formData.genre];
+    const fields = genreFields[formData.genre];
+    const hasContent = defs.some(def => def.type !== 'radio' && fields[def.key]?.trim());
+    if (!formData.department) {
+      setValidationError('部署名は必須です。');
+      return;
+    }
+    if (!hasContent) {
+      setValidationError('報告内容を少なくとも1項目入力してください。');
       return;
     }
     setValidationError('');
@@ -168,9 +258,9 @@ ${formData.content}`;
 
   if (showPreview) {
     return (
-      <PreviewScreen 
-        data={{ ...formData, photos }} 
-        onBack={() => setShowPreview(false)} 
+      <PreviewScreen
+        data={{ ...formData, content: buildContent(), photos }}
+        onBack={() => setShowPreview(false)}
         onConfirm={() => {
           alert('送信完了しました！');
           localStorage.removeItem('re_report_autosave');
@@ -180,10 +270,13 @@ ${formData.content}`;
     );
   }
 
+  const currentDefs   = GENRE_FIELD_DEFS[formData.genre];
+  const currentFields = genreFields[formData.genre];
+
   return (
     <div className="reporter-container">
       {showEmergency && <EmergencyModal onClose={() => setShowEmergency(false)} />}
-      
+
       {showRecoveryDialog && (
         <div className="recovery-dialog glass-panel">
           <h3><Save size={18} /> 前回の入力データがあります</h3>
@@ -194,14 +287,6 @@ ${formData.content}`;
           </div>
         </div>
       )}
-
-      {/* 通知を一時的にオフ
-      {toastMessage && (
-        <div className="toast-notification">
-          <CheckCircle2 size={16} /> {toastMessage}
-        </div>
-      )}
-      */}
 
       <header className="reporter-header glass-panel">
         <div>
@@ -214,8 +299,8 @@ ${formData.content}`;
       </header>
 
       <form className="report-form glass-panel" onSubmit={handleSubmit}>
-        
-        {/* Genre Tabs */}
+
+        {/* ジャンルタブ */}
         <div className="form-section">
           <label>報告ジャンル</label>
           <div className="genre-tabs">
@@ -232,13 +317,13 @@ ${formData.content}`;
           </div>
         </div>
 
-        {/* Metadata */}
+        {/* 部署・作業日 */}
         <div className="form-row">
           <div className="form-section flex-1">
             <label>部署</label>
-            <select 
-              className="input-field" 
-              value={formData.department} 
+            <select
+              className="input-field"
+              value={formData.department}
               onChange={e => setFormData(prev => ({ ...prev, department: e.target.value }))}
             >
               <option value="">選択してください</option>
@@ -249,15 +334,21 @@ ${formData.content}`;
           </div>
           <div className="form-section flex-1">
             <label>作業日 (写真から自動取得可)</label>
-            <input 
-              type="date" 
-              className="input-field" 
-              value={formData.date} 
+            <input
+              type="date"
+              className="input-field"
+              value={formData.date}
               onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              data-gramm="false"
+              data-gramm_editor="false"
+              data-enable-grammarly="false"
+              autoComplete="off"
+              data-1p-ignore="true"
             />
           </div>
         </div>
 
+        {/* 問題の有無・進捗の遅れ */}
         <div className="form-row">
           <div className="form-section flex-1">
             <label>問題の有無</label>
@@ -266,7 +357,6 @@ ${formData.content}`;
               <label><input type="radio" value="yes" checked={formData.hasIssue === 'yes'} onChange={e => setFormData(prev => ({ ...prev, hasIssue: e.target.value }))} /> 有り</label>
             </div>
           </div>
-          {/* 清掃タブでは進捗の遅れを非表示 */}
           <div style={{ display: formData.genre !== 'cleaning' ? 'block' : 'none' }} className="flex-1">
             <div className="form-section flex-1">
               <label>進捗の遅れ</label>
@@ -278,10 +368,16 @@ ${formData.content}`;
           </div>
         </div>
 
-        {/* 問題あり時の詳細入力欄 */}
+        {/* 問題詳細 */}
         <div style={{ display: formData.hasIssue === 'yes' ? 'block' : 'none' }}>
           <div className="form-section">
-            <label>問題の詳細</label>
+            <div className="label-with-action">
+              <label>問題の詳細</label>
+              <VoiceInput onResult={text => setFormData(prev => ({
+                ...prev,
+                issueDetail: prev.issueDetail ? `${prev.issueDetail}\n${text}` : text,
+              }))} />
+            </div>
             <textarea
               className="input-field issue-detail-area"
               value={formData.issueDetail}
@@ -298,33 +394,93 @@ ${formData.content}`;
           </div>
         </div>
 
+        {/* 写真アップロード */}
         <div className="form-section">
-          <PhotoUploader 
-            photos={photos} 
-            setPhotos={setPhotos} 
-            onDateExtracted={handleDateExtracted} 
+          <PhotoUploader
+            photos={photos}
+            setPhotos={setPhotos}
+            onDateExtracted={handleDateExtracted}
           />
         </div>
 
-        {/* Content & Voice Input */}
-        <div className="form-section">
-          <div className="label-with-action">
-            <label>報告内容</label>
-            <VoiceInput onSelectText={handleVoiceInput} />
+        {/* ジャンル別入力フィールド */}
+        <div className="genre-fields-section">
+          <div className="genre-fields-title">■ 報告内容</div>
+
+          {currentDefs.map(def => (
+            <div key={def.key} className="form-section">
+              {def.type === 'radio' ? (
+                <label>{def.label}</label>
+              ) : (
+                <div className="label-with-action">
+                  <label>{def.label}</label>
+                  <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
+                </div>
+              )}
+              {def.type === 'radio' ? (
+                <div className="radio-group">
+                  {def.options.map(opt => (
+                    <label key={opt.value}>
+                      <input
+                        type="radio"
+                        value={opt.value}
+                        checked={currentFields[def.key] === opt.value}
+                        onChange={e => updateGenreField(def.key, e.target.value)}
+                      /> {opt.label}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <textarea
+                  className="input-field genre-field-area"
+                  value={currentFields[def.key]}
+                  onChange={e => updateGenreField(def.key, e.target.value)}
+                  placeholder={def.placeholder}
+                  rows={2}
+                  data-gramm="false"
+                  data-gramm_editor="false"
+                  data-enable-grammarly="false"
+                  autoComplete="off"
+                  data-1p-ignore="true"
+                  spellCheck={false}
+                />
+              )}
+            </div>
+          ))}
+
+          {/* 備考欄トグル */}
+          <div className="memo-toggle">
+            <label className="memo-checkbox-label">
+              <input
+                type="checkbox"
+                checked={showMemo}
+                onChange={e => setShowMemo(e.target.checked)}
+              />
+              備考欄を追加
+            </label>
           </div>
-          <textarea
-            className="input-field content-area"
-            value={formData.content}
-            onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
-            placeholder="詳細を入力してください..."
-            rows={8}
-            data-gramm="false"
-            data-gramm_editor="false"
-            data-enable-grammarly="false"
-            autoComplete="off"
-            data-1p-ignore="true"
-            spellCheck={false}
-          ></textarea>
+
+          <div style={{ display: showMemo ? 'block' : 'none' }}>
+            <div className="form-section">
+              <div className="label-with-action">
+                <label>備考</label>
+                <VoiceInput onResult={text => setMemo(prev => prev ? `${prev}\n${text}` : text)} />
+              </div>
+              <textarea
+                className="input-field genre-field-area"
+                value={memo}
+                onChange={e => setMemo(e.target.value)}
+                placeholder="補足事項があれば記入してください..."
+                rows={3}
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                autoComplete="off"
+                data-1p-ignore="true"
+                spellCheck={false}
+              />
+            </div>
+          </div>
         </div>
 
         {/* AI赤ペン先生 */}
