@@ -6,6 +6,7 @@ import PreviewScreen from './PreviewScreen';
 import VoiceInput from './VoiceInput';
 import { Save, Send, LogOut, AlertTriangle, Bot, Loader } from 'lucide-react';
 import './ReporterDashboard.css';
+import { supabase } from '../../utils/supabaseClient';
 
 const GENRES = [
   { id: 'cleaning',   label: '清掃' },

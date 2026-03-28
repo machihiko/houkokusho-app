@@ -4,6 +4,8 @@ import { Camera, X } from 'lucide-react';
 import { correctOrientation } from '../../utils/correctOrientation';
 import './PhotoUploader.css';
 
+const MAX_PHOTOS = 10;
+
 const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
   const [error, setError] = useState('');
   // 拡大表示するBlobURL（nullなら非表示）
@@ -12,8 +14,8 @@ const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
 
-    if (photos.length + files.length > 3) {
-      setError('写真は最大3枚までです。');
+    if (photos.length + files.length > MAX_PHOTOS) {
+      setError(`写真は最大${MAX_PHOTOS}枚までです。`);
       return;
     }
 
@@ -39,7 +41,7 @@ const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
       }
     }
 
-    setPhotos(prev => [...prev, ...newPhotos].slice(0, 3));
+    setPhotos(prev => [...prev, ...newPhotos].slice(0, MAX_PHOTOS));
   };
 
   const removePhoto = (index) => {
@@ -49,39 +51,47 @@ const PhotoUploader = ({ onDateExtracted, photos, setPhotos }) => {
   return (
     <div className="photo-uploader">
       <div className="upload-header">
-        <label>現場写真 (最大3枚)</label>
-        <span className="photo-count">{photos.length}/3</span>
+        <label>現場写真 (最大{MAX_PHOTOS}枚)</label>
+        <span className="photo-count">{photos.length}/{MAX_PHOTOS}</span>
       </div>
 
-      <div className="photo-grid">
-        {photos.map((photo, index) => (
-          <div key={index} className="photo-preview">
-            {/* クリックで拡大モーダルを開く */}
-            <img
-              src={photo.url}
-              alt={`preview ${index}`}
-              onClick={() => setModalUrl(photo.url)}
-              className="photo-thumb"
-            />
-            <button type="button" className="remove-photo-btn" onClick={() => removePhoto(index)}>
-              <X size={14} />
-            </button>
-          </div>
-        ))}
+      {/* 横スクロールコンテナ：枚数が増えても縦に伸びない */}
+      <div className="photo-scroll-track">
+        <div className="photo-scroll-inner">
+          {photos.map((photo, index) => (
+            <div key={index} className="photo-item">
+              {/* クリックで拡大モーダルを開く */}
+              <img
+                src={photo.url}
+                alt={`preview ${index + 1}`}
+                onClick={() => setModalUrl(photo.url)}
+                className="photo-thumb"
+              />
+              <button
+                type="button"
+                className="remove-photo-btn"
+                onClick={() => removePhoto(index)}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
 
-        {photos.length < 3 && (
-          <label className="upload-btn">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            <Camera size={24} color="var(--primary)" />
-            <span>写真追加</span>
-          </label>
-        )}
+          {/* 上限未満なら追加ボタンを末尾に表示 */}
+          {photos.length < MAX_PHOTOS && (
+            <label className="upload-btn">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <Camera size={22} color="var(--primary)" />
+              <span>追加</span>
+            </label>
+          )}
+        </div>
       </div>
 
       {error && <div className="error-text mt-2">{error}</div>}

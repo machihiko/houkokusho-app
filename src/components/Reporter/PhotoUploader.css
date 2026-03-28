@@ -20,29 +20,65 @@
   border-radius: 12px;
 }
 
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  height: 110px; /* 写真の有無によらず固定高さ */
+/* ── 横スクロールエリア ─────────────────────── */
+.photo-scroll-track {
+  /* 高さを固定し、縦に伸びさせない */
+  height: 110px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* スクロールバーをなめらかに（iOS対応） */
+  -webkit-overflow-scrolling: touch;
+  /* スクロールバーを細くシンプルに */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-.photo-preview {
-  position: relative;
+.photo-scroll-track::-webkit-scrollbar {
+  height: 4px;
+}
+
+.photo-scroll-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.photo-scroll-track::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* 横一列に並べるフレックスコンテナ */
+.photo-scroll-inner {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
   height: 100%;
-  width: 100%;
+  /* はみ出した分が隠れないよう最小幅を確保 */
+  width: max-content;
+  padding-right: 4px; /* 末尾サムネイルの影が切れないよう余白 */
+}
+
+/* 各サムネイル枠：アスペクト比 1:1 固定 */
+.photo-item {
+  position: relative;
+  flex-shrink: 0;
+  width: 95px;
+  height: 95px;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
   border: 1px solid var(--surface-border);
 }
 
-.photo-preview img {
+/* サムネイル画像：アスペクト比を維持しつつ枠に収める */
+.photo-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  cursor: zoom-in;
+  display: block;
 }
 
+/* 削除ボタン */
 .remove-photo-btn {
   position: absolute;
   top: 4px;
@@ -51,8 +87,8 @@
   color: white;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,21 +100,23 @@
   background: var(--danger);
 }
 
+/* 写真追加ボタン：サムネイルと同じ高さ・幅 */
 .upload-btn {
-  height: 100%;
-  width: 100%;
+  flex-shrink: 0;
+  width: 95px;
+  height: 95px;
   border: 2px dashed #cbd5e1;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
   background: rgba(255,255,255,0.5);
   transition: all 0.2s;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -91,17 +129,10 @@
 .error-text {
   color: var(--danger);
   font-size: 0.85rem;
+  margin-top: 6px;
 }
 
-/* サムネイルはホバーで拡大カーソル */
-.photo-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  cursor: zoom-in;
-}
-
-/* 拡大モーダル */
+/* ── 拡大モーダル ─────────────────────────── */
 .photo-modal-overlay {
   position: fixed;
   inset: 0;
