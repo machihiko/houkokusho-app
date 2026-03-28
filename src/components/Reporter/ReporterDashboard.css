@@ -349,3 +349,199 @@ input:checked + .slider:before {
   cursor: pointer;
   accent-color: var(--primary);
 }
+
+/* 備考必須バッジ */
+.memo-required-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 10px;
+  vertical-align: middle;
+}
+
+/* 備考必須時の入力欄ボーダー */
+.memo-required-input {
+  border-color: var(--danger) !important;
+}
+
+/* 備考必須ガイドテキスト */
+.memo-required-guide {
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+/* ── 進捗 Segmented Control ──────────────── */
+.progress-seg {
+  display: flex;
+  gap: 8px;
+}
+
+.progress-seg-btn {
+  flex: 1;
+  padding: 12px 6px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s,
+              transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
+}
+
+/* 押した瞬間に沈む */
+.progress-seg-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+/* 選択済み */
+.progress-seg-btn.active {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.28);
+}
+
+.progress-seg-btn.active:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* スマホ：文字が小さくなりすぎないよう調整 */
+@media (max-width: 480px) {
+  .progress-seg-btn {
+    font-size: 0.82rem;
+    padding: 11px 4px;
+  }
+}
+
+/* ── 問題の有無 Segmented Control（全ジャンル共通・2択） ── */
+.has-issue-seg {
+  display: flex;
+  gap: 8px;
+}
+
+.has-issue-btn {
+  flex: 1;
+  padding: 13px 8px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s,
+              transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
+}
+
+/* 押した瞬間に沈む */
+.has-issue-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+/* 問題無し 選択済み：緑 */
+.has-issue-btn.no.active {
+  background: var(--success, #10b981);
+  border-color: var(--success, #10b981);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+/* 問題あり 選択済み：赤 */
+.has-issue-btn.yes.active {
+  background: var(--danger, #ef4444);
+  border-color: var(--danger, #ef4444);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
+}
+
+.has-issue-btn.active:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ── 異常の有無 Segmented Control（点検のみ・4段階） ── */
+.anomaly-seg {
+  display: flex;
+  gap: 8px;
+}
+
+.anomaly-seg-btn {
+  flex: 1;
+  padding: 12px 6px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: pre-line;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s,
+              transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
+}
+
+/* 押した瞬間に沈む */
+.anomaly-seg-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+/* level-0 選択済み：緑（異常無し） */
+.anomaly-seg-btn.level-0.active {
+  background: var(--success, #10b981);
+  border-color: var(--success, #10b981);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+/* level-1 選択済み：黄（軽微な異変） */
+.anomaly-seg-btn.level-1.active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.3);
+}
+
+/* level-2 選択済み：オレンジ（要確認） */
+.anomaly-seg-btn.level-2.active {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.3);
+}
+
+/* level-3 選択済み：赤（異常あり） */
+.anomaly-seg-btn.level-3.active {
+  background: var(--danger, #ef4444);
+  border-color: var(--danger, #ef4444);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
+}
+
+.anomaly-seg-btn.active:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.12);
+}
+
+/* スマホ：文字サイズを調整 */
+@media (max-width: 480px) {
+  .anomaly-seg-btn {
+    font-size: 0.78rem;
+    padding: 10px 4px;
+  }
+}

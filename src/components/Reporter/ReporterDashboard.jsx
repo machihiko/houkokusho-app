@@ -17,12 +17,8 @@ const GENRES = [
 // ジャンルごとの入力フィールド定義
 const GENRE_FIELD_DEFS = {
   inspection: [
-    { key: 'item',        label: '点検項目',   type: 'textarea',
+    { key: 'item', label: '点検項目', type: 'textarea',
       placeholder: '例：空調機フィルター、消火設備、排水ポンプ など' },
-    { key: 'hasAnomaly',  label: '異常の有無',  type: 'radio',
-      options: [{ value: 'no', label: '無' }, { value: 'yes', label: '有' }] },
-    { key: 'findings',    label: '所見',       type: 'textarea',
-      placeholder: '例：フィルターに詰まりあり。清掃・交換が必要。' },
   ],
   cleaning: [
     { key: 'place',  label: '清掃場所',  type: 'textarea',
@@ -33,21 +29,61 @@ const GENRE_FIELD_DEFS = {
       placeholder: '例：特になし / 落書きを発見、管理者へ報告済み' },
   ],
   repair: [
-    { key: 'target',  label: '対象箇所',   type: 'textarea',
+    { key: 'target',  label: '対象箇所',  type: 'textarea',
       placeholder: '例：西館2F トイレ 水栓レバー' },
-    { key: 'symptom', label: '症状',       type: 'textarea',
+    { key: 'symptom', label: '症状',      type: 'textarea',
       placeholder: '例：レバー操作時に水が止まらない' },
-    { key: 'action',  label: '対応内容',   type: 'textarea',
+    { key: 'action',  label: '対応内容',  type: 'textarea',
       placeholder: '例：パッキン交換により修理完了' },
   ],
 };
 
 // ジャンル別フィールドの初期値
 const INITIAL_GENRE_FIELDS = {
-  inspection: { item: '', hasAnomaly: 'no', findings: '' },
+  inspection: { item: '' },
   cleaning:   { place: '', work: '', notes: '' },
   repair:     { target: '', symptom: '', action: '' },
 };
+
+// 問題の有無（全ジャンル共通・2択）
+const HAS_ISSUE_OPTIONS = [
+  { value: false, label: '問題無し', colorClass: 'no' },
+  { value: true,  label: '問題あり', colorClass: 'yes' },
+];
+
+// 異常の有無（点検のみ・4段階）
+const ANOMALY_LEVELS = [
+  { value: 0, label: '異常無し',     colorClass: 'level-0' },
+  { value: 1, label: '軽微な\n異変', colorClass: 'level-1' },
+  { value: 2, label: '要確認',       colorClass: 'level-2' },
+  { value: 3, label: '異常あり',     colorClass: 'level-3' },
+];
+
+// 進捗状態ボタンの選択肢（ジャンルごとに異なる）
+const PROGRESS_OPTIONS = {
+  cleaning:   [
+    { value: 'done',        label: '完了' },
+    { value: 'incomplete',  label: '未完了' },
+    { value: 'not_started', label: '未着手' },
+  ],
+  inspection: [
+    { value: 'on_track', label: '順調' },
+    { value: 'delayed',  label: '遅れあり' },
+  ],
+  repair: [
+    { value: 'on_track', label: '順調' },
+    { value: 'delayed',  label: '遅れあり' },
+  ],
+};
+
+const PROGRESS_LABELS = {
+  cleaning:   '達成度',
+  inspection: '進捗状況',
+  repair:     '進捗状況',
+};
+
+// 選択時に備考欄が必須になる progress 値
+const PROGRESS_REQUIRES_MEMO = new Set(['incomplete', 'not_started', 'delayed']);
 
 const ReporterDashboard = () => {
   const { logout, user } = useAuth();
@@ -58,38 +94,75 @@ const ReporterDashboard = () => {
 
   // フォーム基本情報
   const [formData, setFormData] = useState({
-    genre: 'cleaning',
-    department: '',
-    hasIssue: 'no',
+    genre:       'cleaning',
+    department:  '',
+    hasIssue:    false,   // 問題の有無（全ジャンル共通・boolean）
     issueDetail: '',
-    hasDelay: 'no',
-    date: new Date().toISOString().split('T')[0],
+    date:        new Date().toISOString().split('T')[0],
   });
 
   // ジャンル別入力フィールド
   const [genreFields, setGenreFields] = useState(INITIAL_GENRE_FIELDS);
 
+  // 異常の有無（点検のみ）
+  const [anomalyLevel, setAnomalyLevel] = useState(0);
+  const [anomalyDetail, setAnomalyDetail] = useState('');
+
   // 備考欄
   const [showMemo, setShowMemo] = useState(false);
   const [memo, setMemo] = useState('');
+
+  // 進捗状態（Segmented Control）
+  const [progress, setProgress] = useState('');
+
+  // ── 派生フラグ ──────────────────────────────
+  // hasIssue = true なら問題詳細が必須
+  const issueDetailRequired = formData.hasIssue === true;
+  // 点検かつ anomalyLevel > 0 なら所見が必須
+  const anomalyDetailRequired = anomalyLevel > 0 && formData.genre === 'inspection';
+  // progress が遅延系なら備考が必須
+  const memoRequired = PROGRESS_REQUIRES_MEMO.has(progress);
 
   const [validationError, setValidationError] = useState('');
   const [useAI, setUseAI] = useState(false);
   const [aiFeedback, setAiFeedback] = useState('');
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
+  // 備考必須のとき自動で備考欄を開く
+  useEffect(() => {
+    if (memoRequired) setShowMemo(true);
+  }, [memoRequired]);
+
   // 現在ジャンルの全入力を1つの文章に結合（PreviewScreen・AI・Excel共用）
   const buildContent = () => {
-    const defs = GENRE_FIELD_DEFS[formData.genre];
+    const defs   = GENRE_FIELD_DEFS[formData.genre];
     const fields = genreFields[formData.genre];
-    const lines = defs.map(def => {
-      if (def.type === 'radio') {
-        const optLabel = def.options.find(o => o.value === fields[def.key])?.label ?? fields[def.key];
-        return `【${def.label}】${optLabel}`;
+    const lines  = defs.map(def => `【${def.label}】${fields[def.key]}`);
+
+    // 問題の有無（全ジャンル共通）
+    lines.push(`【問題の有無】${formData.hasIssue ? '問題あり' : '問題無し'}`);
+    if (formData.issueDetail.trim()) {
+      lines.push(`【問題の詳細】${formData.issueDetail}`);
+    }
+
+    // 異常の有無（点検のみ）
+    if (formData.genre === 'inspection') {
+      const anomalyOpt = ANOMALY_LEVELS.find(l => l.value === anomalyLevel);
+      if (anomalyOpt) {
+        lines.push(`【異常の有無】${anomalyOpt.label.replace('\n', '')}`);
       }
-      return `【${def.label}】${fields[def.key]}`;
-    });
-    if (showMemo && memo.trim()) {
+      if (anomalyDetail.trim()) {
+        lines.push(`【所見】${anomalyDetail}`);
+      }
+    }
+
+    // 達成度・進捗状況
+    if (progress) {
+      const opt = PROGRESS_OPTIONS[formData.genre].find(o => o.value === progress);
+      if (opt) lines.push(`【${PROGRESS_LABELS[formData.genre]}】${opt.label}`);
+    }
+
+    if ((showMemo || memoRequired) && memo.trim()) {
       lines.push(`【備考】${memo}`);
     }
     return lines.join('\n');
@@ -136,13 +209,13 @@ const ReporterDashboard = () => {
       return;
     }
 
-    const genre = GENRES.find(g => g.id === formData.genre)?.label || formData.genre;
+    const genre   = GENRES.find(g => g.id === formData.genre)?.label || formData.genre;
     const content = buildContent();
     const prompt = `あなたは現場報告書の添削AIです。以下の報告書の内容を読み、不明確な点・不足している情報・改善すべき表現について日本語で具体的にアドバイスしてください。箇条書きで簡潔に3点以内でまとめてください。問題がなければ「特に指摘はありません」と答えてください。
 
 【ジャンル】${genre}
 【部署】${formData.department || '未入力'}
-【問題の有無】${formData.hasIssue === 'yes' ? '有り' : '無し'}
+【問題の有無】${formData.hasIssue ? '問題あり' : '問題無し'}
 ${formData.issueDetail ? `【問題の詳細】${formData.issueDetail}` : ''}
 【報告内容】
 ${content}`;
@@ -167,7 +240,7 @@ ${content}`;
       })
       .then(data => {
         console.log('[AI] Response data:', JSON.stringify(data, null, 2));
-        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         const text = (raw != null && raw !== '') ? String(raw) : '返答を取得できませんでした。';
         setAiFeedback(text);
       })
@@ -187,18 +260,19 @@ ${content}`;
 
   // 自動保存（2秒デバウンス）
   useEffect(() => {
+    const currentFields = genreFields[formData.genre];
+    const hasInput = formData.department ||
+      Object.values(currentFields).some(v => typeof v === 'string' && v.trim());
     const handler = setTimeout(() => {
-      const currentFields = genreFields[formData.genre];
-      const hasInput = formData.department ||
-        Object.values(currentFields).some(v => typeof v === 'string' && v.trim() && v !== 'no');
       if (hasInput) {
         localStorage.setItem('re_report_autosave', JSON.stringify({
-          ...formData, genreFields, showMemo, memo, timestamp: Date.now(),
+          ...formData, genreFields, showMemo, memo, progress,
+          anomalyLevel, anomalyDetail, timestamp: Date.now(),
         }));
       }
     }, 2000);
     return () => clearTimeout(handler);
-  }, [formData, genreFields, showMemo, memo]);
+  }, [formData, genreFields, showMemo, memo, progress, anomalyLevel, anomalyDetail]);
 
   const recoverData = (accept) => {
     if (accept) {
@@ -206,16 +280,18 @@ ${content}`;
         const saved = JSON.parse(localStorage.getItem('re_report_autosave'));
         setFormData(prev => ({
           ...prev,
-          genre:       saved.genre       ?? prev.genre,
-          department:  saved.department  ?? prev.department,
-          hasIssue:    saved.hasIssue    ?? prev.hasIssue,
-          issueDetail: saved.issueDetail ?? prev.issueDetail,
-          hasDelay:    saved.hasDelay    ?? prev.hasDelay,
-          date:        saved.date        ?? prev.date,
+          genre:       saved.genre        ?? prev.genre,
+          department:  saved.department   ?? prev.department,
+          hasIssue:    saved.hasIssue     ?? prev.hasIssue,
+          issueDetail: saved.issueDetail  ?? prev.issueDetail,
+          date:        saved.date         ?? prev.date,
         }));
-        if (saved.genreFields) setGenreFields(saved.genreFields);
-        if (saved.showMemo != null) setShowMemo(saved.showMemo);
-        if (saved.memo != null) setMemo(saved.memo);
+        if (saved.genreFields)          setGenreFields(saved.genreFields);
+        if (saved.showMemo      != null) setShowMemo(saved.showMemo);
+        if (saved.memo          != null) setMemo(saved.memo);
+        if (saved.progress      != null) setProgress(saved.progress);
+        if (saved.anomalyLevel  != null) setAnomalyLevel(saved.anomalyLevel);
+        if (saved.anomalyDetail != null) setAnomalyDetail(saved.anomalyDetail);
       } catch (e) {
         console.error('Failed to parse autosave data', e);
       }
@@ -226,12 +302,14 @@ ${content}`;
   };
 
   const handleGenreChange = (genreId) => {
-    setFormData(prev => ({
-      ...prev,
-      genre: genreId,
-      hasDelay: genreId === 'cleaning' ? 'no' : prev.hasDelay,
-    }));
+    setFormData(prev => ({ ...prev, genre: genreId }));
+    setProgress('');
     setShowMemo(false);
+    // 点検以外に切り替えたら異常関連をリセット
+    if (genreId !== 'inspection') {
+      setAnomalyLevel(0);
+      setAnomalyDetail('');
+    }
   };
 
   const handleDateExtracted = (extractedDate) => {
@@ -240,19 +318,58 @@ ${content}`;
     alert(`写真から撮影日（${formatted}）を取得しました`);
   };
 
-  // 最終送信：Supabase に保存してから画面をリセット
+  // 最終送信：reports insert → 写真アップロード → photos insert
   const handleConfirm = async () => {
-    const { error } = await supabase.from('reports').insert({
-      genre:       formData.genre,
-      department:  formData.department,
-      work_date:   formData.date,
-      has_problem: formData.hasIssue === 'yes',
-    });
+    const { data: reportRows, error: reportError } = await supabase
+      .from('reports')
+      .insert({
+        genre:       formData.genre,
+        department:  formData.department,
+        work_date:   formData.date,
+        has_problem: formData.hasIssue,
+      })
+      .select('id')
+      .single();
 
-    if (error) {
-      console.error('[Supabase] 報告書の保存に失敗しました:', error);
-      alert('送信に失敗しました。\n' + error.message);
+    if (reportError) {
+      console.error('[Supabase] 報告書の保存に失敗しました:', reportError);
+      alert('送信に失敗しました。\n' + reportError.message);
       return;
+    }
+
+    const reportId = reportRows.id;
+
+    if (photos.length > 0) {
+      for (const photo of photos) {
+        try {
+          const rawExt     = photo.name.split('.').pop();
+          const ext        = /^[a-zA-Z0-9]+$/.test(rawExt) ? rawExt.toLowerCase() : 'jpg';
+          const rand       = Math.random().toString(36).slice(2, 10);
+          const uniqueName = `${Date.now()}_${rand}.${ext}`;
+          const filePath   = `${reportId}/${uniqueName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('photos')
+            .upload(filePath, photo.file, { upsert: false });
+
+          if (uploadError) {
+            console.error('[Supabase] 写真のアップロードに失敗しました:', uploadError);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filePath);
+
+          const { error: photoInsertError } = await supabase
+            .from('photos')
+            .insert({ report_id: reportId, photo_url: urlData.publicUrl });
+
+          if (photoInsertError) {
+            console.error('[Supabase] 写真URLの保存に失敗しました:', photoInsertError);
+          }
+        } catch (e) {
+          console.error('[Supabase] 写真処理中に予期しないエラーが発生しました:', e);
+        }
+      }
     }
 
     alert('報告書を送信しました！');
@@ -262,15 +379,28 @@ ${content}`;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const defs  = GENRE_FIELD_DEFS[formData.genre];
-    const fields = genreFields[formData.genre];
-    const hasContent = defs.some(def => def.type !== 'radio' && fields[def.key]?.trim());
+    const defs       = GENRE_FIELD_DEFS[formData.genre];
+    const fields     = genreFields[formData.genre];
+    const hasContent = defs.some(def => fields[def.key]?.trim());
+
     if (!formData.department) {
       setValidationError('部署名は必須です。');
       return;
     }
     if (!hasContent) {
       setValidationError('報告内容を少なくとも1項目入力してください。');
+      return;
+    }
+    if (issueDetailRequired && !formData.issueDetail.trim()) {
+      setValidationError('問題の詳細を入力してください。');
+      return;
+    }
+    if (anomalyDetailRequired && !anomalyDetail.trim()) {
+      setValidationError('異常の所見を入力してください。');
+      return;
+    }
+    if (memoRequired && !memo.trim()) {
+      setValidationError('遅延や未完了の理由を備考欄に入力してください。');
       return;
     }
     setValidationError('');
@@ -365,38 +495,39 @@ ${content}`;
           </div>
         </div>
 
-        {/* 問題の有無・進捗の遅れ */}
-        <div className="form-row">
-          <div className="form-section flex-1">
-            <label>問題の有無</label>
-            <div className="radio-group">
-              <label><input type="radio" value="no" checked={formData.hasIssue === 'no'} onChange={e => setFormData(prev => ({ ...prev, hasIssue: e.target.value, issueDetail: '' }))} /> 無し</label>
-              <label><input type="radio" value="yes" checked={formData.hasIssue === 'yes'} onChange={e => setFormData(prev => ({ ...prev, hasIssue: e.target.value }))} /> 有り</label>
-            </div>
-          </div>
-          <div style={{ display: formData.genre !== 'cleaning' ? 'block' : 'none' }} className="flex-1">
-            <div className="form-section flex-1">
-              <label>進捗の遅れ</label>
-              <div className="radio-group">
-                <label><input type="radio" value="no" checked={formData.hasDelay === 'no'} onChange={e => setFormData(prev => ({ ...prev, hasDelay: e.target.value }))} /> 無し</label>
-                <label><input type="radio" value="yes" checked={formData.hasDelay === 'yes'} onChange={e => setFormData(prev => ({ ...prev, hasDelay: e.target.value }))} /> 有り</label>
-              </div>
-            </div>
+        {/* 問題の有無（全ジャンル共通・2択ボタン） */}
+        <div className="form-section">
+          <label>問題の有無</label>
+          <div className="has-issue-seg">
+            {HAS_ISSUE_OPTIONS.map(opt => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                className={`has-issue-btn ${opt.colorClass}${formData.hasIssue === opt.value ? ' active' : ''}`}
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  hasIssue:    opt.value,
+                  issueDetail: opt.value === false ? '' : prev.issueDetail,
+                }))}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* 問題詳細 */}
-        <div style={{ display: formData.hasIssue === 'yes' ? 'block' : 'none' }}>
+        {/* 問題詳細（問題あり の時のみ） */}
+        {issueDetailRequired && (
           <div className="form-section">
             <div className="label-with-action">
-              <label>問題の詳細</label>
+              <label>問題の詳細（必須）</label>
               <VoiceInput onResult={text => setFormData(prev => ({
                 ...prev,
                 issueDetail: prev.issueDetail ? `${prev.issueDetail}\n${text}` : text,
               }))} />
             </div>
             <textarea
-              className="input-field issue-detail-area"
+              className="input-field issue-detail-area memo-required-input"
               value={formData.issueDetail}
               onChange={e => setFormData(prev => ({ ...prev, issueDetail: e.target.value }))}
               placeholder="問題の内容を具体的に入力してください..."
@@ -408,6 +539,24 @@ ${content}`;
               data-1p-ignore="true"
               spellCheck={false}
             />
+            <p className="memo-required-guide">※問題の内容や状況を具体的に教えてください</p>
+          </div>
+        )}
+
+        {/* 達成度 / 進捗状況 */}
+        <div className="form-section">
+          <label>{PROGRESS_LABELS[formData.genre]}</label>
+          <div className="progress-seg">
+            {PROGRESS_OPTIONS[formData.genre].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`progress-seg-btn${progress === opt.value ? ' active' : ''}`}
+                onClick={() => setProgress(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -426,65 +575,98 @@ ${content}`;
 
           {currentDefs.map(def => (
             <div key={def.key} className="form-section">
-              {def.type === 'radio' ? (
+              <div className="label-with-action">
                 <label>{def.label}</label>
-              ) : (
-                <div className="label-with-action">
-                  <label>{def.label}</label>
-                  <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
-                </div>
-              )}
-              {def.type === 'radio' ? (
-                <div className="radio-group">
-                  {def.options.map(opt => (
-                    <label key={opt.value}>
-                      <input
-                        type="radio"
-                        value={opt.value}
-                        checked={currentFields[def.key] === opt.value}
-                        onChange={e => updateGenreField(def.key, e.target.value)}
-                      /> {opt.label}
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <textarea
-                  className="input-field genre-field-area"
-                  value={currentFields[def.key]}
-                  onChange={e => updateGenreField(def.key, e.target.value)}
-                  placeholder={def.placeholder}
-                  rows={2}
-                  data-gramm="false"
-                  data-gramm_editor="false"
-                  data-enable-grammarly="false"
-                  autoComplete="off"
-                  data-1p-ignore="true"
-                  spellCheck={false}
-                />
-              )}
+                <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
+              </div>
+              <textarea
+                className="input-field genre-field-area"
+                value={currentFields[def.key]}
+                onChange={e => updateGenreField(def.key, e.target.value)}
+                placeholder={def.placeholder}
+                rows={2}
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                autoComplete="off"
+                data-1p-ignore="true"
+                spellCheck={false}
+              />
             </div>
           ))}
 
-          {/* 備考欄トグル */}
+          {/* 異常の有無（点検のみ・4段階ボタン） */}
+          {formData.genre === 'inspection' && (
+            <>
+              <div className="form-section">
+                <label>異常の有無</label>
+                <div className="anomaly-seg">
+                  {ANOMALY_LEVELS.map(lv => (
+                    <button
+                      key={lv.value}
+                      type="button"
+                      className={`anomaly-seg-btn ${lv.colorClass}${anomalyLevel === lv.value ? ' active' : ''}`}
+                      onClick={() => {
+                        setAnomalyLevel(lv.value);
+                        if (lv.value === 0) setAnomalyDetail('');
+                      }}
+                    >
+                      {lv.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 所見（異常レベル > 0 のときのみ） */}
+              {anomalyDetailRequired && (
+                <div className="form-section">
+                  <div className="label-with-action">
+                    <label>所見（必須）</label>
+                    <VoiceInput onResult={text => setAnomalyDetail(prev => prev ? `${prev}\n${text}` : text)} />
+                  </div>
+                  <textarea
+                    className="input-field issue-detail-area memo-required-input"
+                    value={anomalyDetail}
+                    onChange={e => setAnomalyDetail(e.target.value)}
+                    placeholder="異常の内容を具体的に入力してください..."
+                    rows={3}
+                    data-gramm="false"
+                    data-gramm_editor="false"
+                    data-enable-grammarly="false"
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    spellCheck={false}
+                  />
+                  <p className="memo-required-guide">※異常の状況や程度を詳しく教えてください</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 備考欄トグル（必須時はチェックを外せない） */}
           <div className="memo-toggle">
             <label className="memo-checkbox-label">
               <input
                 type="checkbox"
-                checked={showMemo}
+                checked={showMemo || memoRequired}
+                disabled={memoRequired}
                 onChange={e => setShowMemo(e.target.checked)}
               />
               備考欄を追加
+              {memoRequired && <span className="memo-required-badge">必須</span>}
             </label>
           </div>
 
-          <div style={{ display: showMemo ? 'block' : 'none' }}>
+          {(showMemo || memoRequired) && (
             <div className="form-section">
               <div className="label-with-action">
-                <label>備考</label>
+                <label>
+                  {memoRequired ? '備考（理由を記入してください）' : '備考'}
+                </label>
                 <VoiceInput onResult={text => setMemo(prev => prev ? `${prev}\n${text}` : text)} />
               </div>
               <textarea
-                className="input-field genre-field-area"
+                className={`input-field genre-field-area${memoRequired ? ' memo-required-input' : ''}`}
                 value={memo}
                 onChange={e => setMemo(e.target.value)}
                 placeholder="補足事項があれば記入してください..."
@@ -496,8 +678,13 @@ ${content}`;
                 data-1p-ignore="true"
                 spellCheck={false}
               />
+              {memoRequired && (
+                <p className="memo-required-guide">
+                  ※遅延や未完了の理由を詳しく教えてください
+                </p>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* AI赤ペン先生 */}
@@ -515,7 +702,7 @@ ${content}`;
           </label>
         </div>
 
-        <div style={{ display: useAI ? 'block' : 'none' }}>
+        {useAI && (
           <div className="ai-feedback-box">
             <h4>
               {aiFeedbackLoading
@@ -525,7 +712,7 @@ ${content}`;
             </h4>
             {!aiFeedbackLoading && <p>{aiFeedback}</p>}
           </div>
-        </div>
+        )}
 
         {validationError && (
           <div className="validation-error">
