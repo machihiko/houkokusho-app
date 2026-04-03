@@ -17,25 +17,84 @@ const GENRES = [
 // ジャンルごとの入力フィールド定義
 const GENRE_FIELD_DEFS = {
   inspection: [
-    { key: 'item', label: '点検項目', type: 'textarea',
-      placeholder: '例：空調機フィルター、消火設備、排水ポンプ など' },
+    { key: 'item', label: '点検項目', type: 'select',
+      placeholder: 'その他の場合は具体的に入力してください...' },
   ],
   cleaning: [
-    { key: 'place',  label: '清掃場所',  type: 'textarea',
-      placeholder: '例：3階エントランス、駐車場B区画 など' },
-    { key: 'work',   label: '清掃内容',  type: 'textarea',
-      placeholder: '例：床面モップ掛け、ガラス清拭、ゴミ回収' },
+    { key: 'place',  label: '清掃場所',  type: 'select',
+      placeholder: 'その他の場合は具体的に入力してください...' },
+    { key: 'work',   label: '清掃内容',  type: 'select',
+      placeholder: 'その他の場合は具体的に入力してください...' },
     { key: 'notes',  label: '特記事項',  type: 'textarea',
       placeholder: '例：特になし / 落書きを発見、管理者へ報告済み' },
   ],
   repair: [
-    { key: 'target',  label: '対象箇所',  type: 'textarea',
-      placeholder: '例：西館2F トイレ 水栓レバー' },
-    { key: 'symptom', label: '症状',      type: 'textarea',
-      placeholder: '例：レバー操作時に水が止まらない' },
-    { key: 'action',  label: '対応内容',  type: 'textarea',
-      placeholder: '例：パッキン交換により修理完了' },
+    { key: 'target',  label: '対象箇所',  type: 'select',
+      placeholder: 'その他の場合は具体的に入力してください...' },
+    { key: 'symptom', label: '症状',      type: 'select',
+      placeholder: 'その他の場合は具体的に入力してください...' },
+    { key: 'action',  label: '対応内容',  type: 'select',
+      placeholder: 'その他の場合は具体的に入力してください...' },
   ],
+};
+
+// ▼▼▼ プルダウンの選択肢（ここを編集して追加・修正できます） ▼▼▼
+const SELECT_OPTIONS = {
+  inspection: {
+    item: [
+      { value: 'air_filter',   label: '空調フィルター' },
+      { value: 'fire_equip',   label: '消火設備' },
+      { value: 'drain_pump',   label: '排水ポンプ' },
+      { value: 'electrical',   label: '電気設備' },
+      { value: 'other',        label: 'その他' },
+    ],
+  },
+  cleaning: {
+    place: [
+      { value: '1f_toilet',    label: '1Fトイレ' },
+      { value: 'entrance',     label: 'エントランス' },
+      { value: 'corridor',     label: '廊下・通路' },
+      { value: 'parking',      label: '駐車場' },
+      { value: 'other',        label: 'その他' },
+    ],
+    work: [
+      { value: 'floor_mop',    label: '床面モップ掛け' },
+      { value: 'glass_wipe',   label: 'ガラス清拭' },
+      { value: 'trash',        label: 'ゴミ回収・分別' },
+      { value: 'sink_clean',   label: '洗面台・シンク清掃' },
+      { value: 'other',        label: 'その他' },
+    ],
+  },
+  repair: {
+    target: [
+      { value: 'toilet_lever', label: 'トイレ 水栓レバー' },
+      { value: 'door',         label: 'ドア・扉' },
+      { value: 'light',        label: '照明設備' },
+      { value: 'drain',        label: '排水設備' },
+      { value: 'other',        label: 'その他' },
+    ],
+    symptom: [
+      { value: 'water_leak',   label: '水漏れ' },
+      { value: 'broken',       label: '破損・割れ' },
+      { value: 'noise',        label: '異音' },
+      { value: 'not_working',  label: '動作不良' },
+      { value: 'other',        label: 'その他' },
+    ],
+    action: [
+      { value: 'replaced',     label: '部品交換により修理完了' },
+      { value: 'temp_fix',     label: '応急処置済み・要経過観察' },
+      { value: 'reported',     label: '業者へ連絡済み・対応待ち' },
+      { value: 'other',        label: 'その他' },
+    ],
+  },
+};
+// ▲▲▲ プルダウンの選択肢ここまで ▲▲▲
+
+// セレクトフィールドの初期選択状態
+const INITIAL_SELECTED_OPTIONS = {
+  inspection: { item: '' },
+  cleaning:   { place: '', work: '' },
+  repair:     { target: '', symptom: '', action: '' },
 };
 
 // ジャンル別フィールドの初期値
@@ -104,6 +163,9 @@ const ReporterDashboard = () => {
   // ジャンル別入力フィールド
   const [genreFields, setGenreFields] = useState(INITIAL_GENRE_FIELDS);
 
+  // セレクトフィールドの選択状態（'other' 判定に使用）
+  const [selectedOptions, setSelectedOptions] = useState(INITIAL_SELECTED_OPTIONS);
+
   // 異常の有無（点検のみ）
   const [anomalyLevel, setAnomalyLevel] = useState(0);
   const [anomalyDetail, setAnomalyDetail] = useState('');
@@ -168,6 +230,29 @@ const ReporterDashboard = () => {
       lines.push(`【備考】${memo}`);
     }
     return lines.join('\n');
+  };
+
+  // セレクトフィールドの選択変更
+  const updateSelectField = (key, optionValue) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [formData.genre]: { ...prev[formData.genre], [key]: optionValue },
+    }));
+    if (optionValue !== 'other') {
+      // 選択肢のラベルをそのまま genreFields に保存
+      const label = SELECT_OPTIONS[formData.genre][key]?.find(o => o.value === optionValue)?.label ?? '';
+      setGenreFields(prev => ({
+        ...prev,
+        [formData.genre]: { ...prev[formData.genre], [key]: label },
+      }));
+    } else {
+      // その他：テキスト入力に切り替えるため値をクリア
+      setGenreFields(prev => ({
+        ...prev,
+        [formData.genre]: { ...prev[formData.genre], [key]: '' },
+      }));
+    }
+    setFieldErrors(prev => ({ ...prev, [key]: '' }));
   };
 
   // ジャンルフィールドを1項目更新
@@ -270,7 +355,7 @@ ${content}`;
     const handler = setTimeout(() => {
       if (hasInput) {
         localStorage.setItem('re_report_autosave', JSON.stringify({
-          ...formData, genreFields, showMemo, memo, progress,
+          ...formData, genreFields, selectedOptions, showMemo, memo, progress,
           anomalyLevel, anomalyDetail, timestamp: Date.now(),
         }));
       }
@@ -294,8 +379,9 @@ ${content}`;
         if (saved.showMemo      != null) setShowMemo(saved.showMemo);
         if (saved.memo          != null) setMemo(saved.memo);
         if (saved.progress      != null) setProgress(saved.progress);
-        if (saved.anomalyLevel  != null) setAnomalyLevel(saved.anomalyLevel);
-        if (saved.anomalyDetail != null) setAnomalyDetail(saved.anomalyDetail);
+        if (saved.anomalyLevel    != null) setAnomalyLevel(saved.anomalyLevel);
+        if (saved.anomalyDetail   != null) setAnomalyDetail(saved.anomalyDetail);
+        if (saved.selectedOptions != null) setSelectedOptions(saved.selectedOptions);
       } catch (e) {
         console.error('Failed to parse autosave data', e);
       }
@@ -458,6 +544,8 @@ ${content}`;
     const newFieldErrors = {};
     const curFields = genreFields[formData.genre];
     GENRE_FIELD_DEFS[formData.genre].forEach(def => {
+      // select フィールドは「その他」選択時のみ長さチェック
+      if (def.type === 'select' && selectedOptions[formData.genre]?.[def.key] !== 'other') return;
       const val = curFields[def.key]?.trim() ?? '';
       if (val.length > 0 && val.length < MIN_LEN) {
         newFieldErrors[def.key] = minMsg;
@@ -657,30 +745,69 @@ ${content}`;
         <div className="genre-fields-section">
           <div className="genre-fields-title">■ 報告内容</div>
 
-          {currentDefs.map(def => (
-            <div key={def.key} className="form-section">
-              <div className="label-with-action">
-                <label>{def.label}</label>
-                <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
+          {currentDefs.map(def => {
+            const isOther = def.type === 'select'
+              && selectedOptions[formData.genre]?.[def.key] === 'other';
+            return (
+              <div key={def.key} className="form-section">
+                <div className="label-with-action">
+                  <label>{def.label}</label>
+                  {/* テキスト入力時のみ音声入力を表示 */}
+                  {(def.type === 'textarea' || isOther) && (
+                    <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
+                  )}
+                </div>
+
+                {def.type === 'select' ? (
+                  <>
+                    <select
+                      className={`input-field${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
+                      value={selectedOptions[formData.genre]?.[def.key] ?? ''}
+                      onChange={e => updateSelectField(def.key, e.target.value)}
+                    >
+                      <option value="">選択してください</option>
+                      {SELECT_OPTIONS[formData.genre][def.key].map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    {isOther && (
+                      <textarea
+                        className={`input-field genre-field-area${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
+                        value={currentFields[def.key]}
+                        onChange={e => updateGenreField(def.key, e.target.value)}
+                        placeholder={def.placeholder}
+                        rows={2}
+                        data-gramm="false"
+                        data-gramm_editor="false"
+                        data-enable-grammarly="false"
+                        autoComplete="off"
+                        data-1p-ignore="true"
+                        spellCheck={false}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <textarea
+                    className={`input-field genre-field-area${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
+                    value={currentFields[def.key]}
+                    onChange={e => updateGenreField(def.key, e.target.value)}
+                    placeholder={def.placeholder}
+                    rows={2}
+                    data-gramm="false"
+                    data-gramm_editor="false"
+                    data-enable-grammarly="false"
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    spellCheck={false}
+                  />
+                )}
+
+                {fieldErrors[def.key] && (
+                  <p className="field-error">{fieldErrors[def.key]}</p>
+                )}
               </div>
-              <textarea
-                className={`input-field genre-field-area${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
-                value={currentFields[def.key]}
-                onChange={e => updateGenreField(def.key, e.target.value)}
-                placeholder={def.placeholder}
-                rows={2}
-                data-gramm="false"
-                data-gramm_editor="false"
-                data-enable-grammarly="false"
-                autoComplete="off"
-                data-1p-ignore="true"
-                spellCheck={false}
-              />
-              {fieldErrors[def.key] && (
-                <p className="field-error">{fieldErrors[def.key]}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
 
           {/* 異常の有無（点検のみ・4段階ボタン） */}
           {formData.genre === 'inspection' && (
