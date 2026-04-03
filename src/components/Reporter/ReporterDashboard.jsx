@@ -123,6 +123,7 @@ const ReporterDashboard = () => {
   // progress が遅延系なら備考が必須
   const memoRequired = PROGRESS_REQUIRES_MEMO.has(progress);
 
+  const [fieldErrors, setFieldErrors] = useState({});
   const [progressError, setProgressError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [useAI, setUseAI] = useState(false);
@@ -175,6 +176,7 @@ const ReporterDashboard = () => {
       ...prev,
       [formData.genre]: { ...prev[formData.genre], [key]: value },
     }));
+    setFieldErrors(prev => ({ ...prev, [key]: '' }));
   };
 
   // 音声入力の結果をジャンルフィールドに追記
@@ -189,6 +191,7 @@ const ReporterDashboard = () => {
         },
       };
     });
+    setFieldErrors(prev => ({ ...prev, [key]: '' }));
   };
 
   // AI赤ペン先生トグル
@@ -306,6 +309,7 @@ ${content}`;
     setFormData(prev => ({ ...prev, genre: genreId }));
     setProgress('');
     setProgressError('');
+    setFieldErrors({});
     setShowMemo(false);
     // 点検以外に切り替えたら異常関連をリセット
     if (genreId !== 'inspection') {
@@ -447,6 +451,27 @@ ${content}`;
       return;
     }
     setProgressError('');
+
+    // ── 各テキストフィールドの最低文字数チェック（5文字以上） ──
+    const MIN_LEN = 5;
+    const minMsg  = 'もう少し具体的に入力してください（5文字以上）';
+    const newFieldErrors = {};
+    const curFields = genreFields[formData.genre];
+    GENRE_FIELD_DEFS[formData.genre].forEach(def => {
+      const val = curFields[def.key]?.trim() ?? '';
+      if (val.length > 0 && val.length < MIN_LEN) {
+        newFieldErrors[def.key] = minMsg;
+      }
+    });
+    if ((showMemo || memoRequired) && memo.trim().length > 0 && memo.trim().length < MIN_LEN) {
+      newFieldErrors.memo = minMsg;
+    }
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
+    setFieldErrors({});
+
     if (issueDetailRequired && !formData.issueDetail.trim()) {
       setValidationError('問題の詳細を入力してください。');
       return;
@@ -639,7 +664,7 @@ ${content}`;
                 <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
               </div>
               <textarea
-                className="input-field genre-field-area"
+                className={`input-field genre-field-area${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
                 value={currentFields[def.key]}
                 onChange={e => updateGenreField(def.key, e.target.value)}
                 placeholder={def.placeholder}
@@ -651,6 +676,9 @@ ${content}`;
                 data-1p-ignore="true"
                 spellCheck={false}
               />
+              {fieldErrors[def.key] && (
+                <p className="field-error">{fieldErrors[def.key]}</p>
+              )}
             </div>
           ))}
 
@@ -725,10 +753,12 @@ ${content}`;
                 <VoiceInput onResult={text => setMemo(prev => prev ? `${prev}\n${text}` : text)} />
               </div>
               <textarea
-                className={`input-field genre-field-area${memoRequired ? ' memo-required-input' : ''}`}
+                className={`input-field genre-field-area${memoRequired || fieldErrors.memo ? ' memo-required-input' : ''}`}
                 value={memo}
-                onChange={e => setMemo(e.target.value)}
-                placeholder="補足事項があれば記入してください..."
+                onChange={e => { setMemo(e.target.value); setFieldErrors(prev => ({ ...prev, memo: '' })); }}
+                placeholder={memoRequired
+                  ? '例：〇〇の部品が不足しているため、明日手配して再開予定です。 / 本日体調不良により欠勤のため未着手です。'
+                  : '補足事項があれば記入してください...'}
                 rows={3}
                 data-gramm="false"
                 data-gramm_editor="false"
@@ -737,7 +767,10 @@ ${content}`;
                 data-1p-ignore="true"
                 spellCheck={false}
               />
-              {memoRequired && (
+              {fieldErrors.memo && (
+                <p className="field-error">{fieldErrors.memo}</p>
+              )}
+              {memoRequired && !fieldErrors.memo && (
                 <p className="memo-required-guide">
                   ※遅延や未完了の理由を詳しく教えてください
                 </p>
