@@ -123,6 +123,7 @@ const ReporterDashboard = () => {
   // progress が遅延系なら備考が必須
   const memoRequired = PROGRESS_REQUIRES_MEMO.has(progress);
 
+  const [progressError, setProgressError] = useState('');
   const [validationError, setValidationError] = useState('');
   const [useAI, setUseAI] = useState(false);
   const [aiFeedback, setAiFeedback] = useState('');
@@ -304,6 +305,7 @@ ${content}`;
   const handleGenreChange = (genreId) => {
     setFormData(prev => ({ ...prev, genre: genreId }));
     setProgress('');
+    setProgressError('');
     setShowMemo(false);
     // 点検以外に切り替えたら異常関連をリセット
     if (genreId !== 'inspection') {
@@ -318,7 +320,7 @@ ${content}`;
     alert(`写真から撮影日（${formatted}）を取得しました`);
   };
 
-  // 最終送信：reports insert → 写真アップロード → photos insert
+  // 最終送信：reports insert → ジャンル別詳細 insert → 写真アップロード → photos insert
   const handleConfirm = async () => {
     const { data: reportRows, error: reportError } = await supabase
       .from('reports')
@@ -337,7 +339,56 @@ ${content}`;
       return;
     }
 
-    const reportId = reportRows.id;
+    const reportId     = reportRows.id;
+    const fields       = genreFields[formData.genre];
+    const memoValue    = (showMemo || memoRequired) && memo.trim() ? memo.trim() : null;
+    // 進捗・達成度を画面表示と同じ日本語テキストに変換
+    const progressLabel = PROGRESS_OPTIONS[formData.genre].find(o => o.value === progress)?.label ?? progress;
+
+    // ── ジャンル別詳細テーブルへ insert ──────────────────
+    if (formData.genre === 'cleaning') {
+      const { error } = await supabase.from('cleanings').insert({
+        report_id:     reportId,
+        location:      fields.place,
+        item:          fields.work,
+        is_completed:  progressLabel,
+        special_notes: fields.notes  || null,
+        notes:         memoValue,
+      });
+      if (error) {
+        console.error('[Supabase] cleanings の保存に失敗しました:', error);
+        alert('清掃詳細の送信に失敗しました。\n' + error.message);
+        return;
+      }
+    } else if (formData.genre === 'inspection') {
+      const { error } = await supabase.from('inspections').insert({
+        report_id:       reportId,
+        inspection_item: fields.item,
+        anomaly_level:   anomalyLevel,
+        findings:        anomalyDetail.trim() || null,
+        is_delayed:      progressLabel,
+        notes:           memoValue,
+      });
+      if (error) {
+        console.error('[Supabase] inspections の保存に失敗しました:', error);
+        alert('点検詳細の送信に失敗しました。\n' + error.message);
+        return;
+      }
+    } else if (formData.genre === 'repair') {
+      const { error } = await supabase.from('repairs').insert({
+        report_id:     reportId,
+        repair_item:   fields.target,
+        repair_detail: fields.symptom || null,
+        repair_action: fields.action  || null,
+        progress:      progressLabel,
+        notes:         memoValue,
+      });
+      if (error) {
+        console.error('[Supabase] repairs の保存に失敗しました:', error);
+        alert('修理詳細の送信に失敗しました。\n' + error.message);
+        return;
+      }
+    }
 
     if (photos.length > 0) {
       for (const photo of photos) {
@@ -391,6 +442,11 @@ ${content}`;
       setValidationError('報告内容を少なくとも1項目入力してください。');
       return;
     }
+    if (!progress) {
+      setProgressError('選択してください');
+      return;
+    }
+    setProgressError('');
     if (issueDetailRequired && !formData.issueDetail.trim()) {
       setValidationError('問題の詳細を入力してください。');
       return;
@@ -546,18 +602,21 @@ ${content}`;
         {/* 達成度 / 進捗状況 */}
         <div className="form-section">
           <label>{PROGRESS_LABELS[formData.genre]}</label>
-          <div className="progress-seg">
+          <div className={`progress-seg${progressError ? ' seg-error' : ''}`}>
             {PROGRESS_OPTIONS[formData.genre].map(opt => (
               <button
                 key={opt.value}
                 type="button"
                 className={`progress-seg-btn${progress === opt.value ? ' active' : ''}`}
-                onClick={() => setProgress(opt.value)}
+                onClick={() => { setProgress(opt.value); setProgressError(''); }}
               >
                 {opt.label}
               </button>
             ))}
           </div>
+          {progressError && (
+            <p className="field-error">{progressError}</p>
+          )}
         </div>
 
         {/* 写真アップロード */}

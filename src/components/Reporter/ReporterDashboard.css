@@ -376,6 +376,28 @@ input:checked + .slider:before {
   margin-top: 6px;
 }
 
+/* 項目単位のインラインエラー */
+.field-error {
+  color: var(--danger, #ef4444);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.field-error::before {
+  content: '⚠';
+  font-size: 0.8rem;
+}
+
+/* エラー時のボタン群外枠 */
+.seg-error {
+  outline: 2px solid var(--danger, #ef4444);
+  border-radius: 12px;
+  outline-offset: 2px;
+}
+
 /* ── 進捗 Segmented Control ──────────────── */
 .progress-seg {
   display: flex;
