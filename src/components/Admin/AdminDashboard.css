@@ -187,6 +187,61 @@
   color: var(--text-muted);
 }
 
+.ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.ai-panel-header .section-title {
+  margin-bottom: 0;
+}
+
+.btn-ai-generate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1.5px solid var(--primary-light, #93c5fd);
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-ai-generate:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: var(--primary);
+}
+
+.btn-ai-generate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ローディングスピナー */
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: ai-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
 .ai-insight {
   font-size: 0.9rem;
   line-height: 1.5;
@@ -195,6 +250,23 @@
   padding: 12px;
   border-radius: 8px;
   border-left: 3px solid var(--primary);
+  white-space: pre-wrap;
+}
+
+.ai-placeholder {
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.03);
+  border-left-color: #cbd5e1;
+}
+
+.ai-error {
+  font-size: 0.85rem;
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
 }
 
 /* Map Widget */
@@ -240,12 +312,15 @@
   margin-bottom: 20px;
   flex-shrink: 0;
   gap: 8px;
+  min-height: 84px; /* section-title(~26px) + gap(8px) + btn(48px) を固定 */
 }
 
-/* タイトル行は幅いっぱいに広がる */
+/* タイトル行は幅いっぱいに広がり、常に1行に固定（高さ変動防止） */
 .list-header .section-title {
   width: 100%;
   margin-bottom: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 /* Excel出力ボタンを右端に寄せる */
@@ -266,7 +341,7 @@
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-  padding-right: 8px;
+  scrollbar-gutter: stable; /* スクロールバー出現/消滅で幅が変わらない */
 }
 
 .report-card {
@@ -312,6 +387,16 @@
   margin-bottom: 8px;
   font-size: 0.85rem;
   color: var(--text-muted);
+  min-height: 24px; /* バッジ有無でcard-top高さが変わらない */
+}
+
+/* バッジ0個でも高さを確保し、card-topのalignを崩さない */
+.card-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  margin-left: auto;
 }
 
 .rpt-date {
@@ -394,9 +479,11 @@
   gap: 6px;
   padding: 20px 16px;
   border-radius: 16px;
-  border: none;
+  /* 常に 2px border を確保 → active 時に border-color を変えてもサイズ不変 */
+  border: 2px solid transparent;
+  box-sizing: border-box;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   position: relative;
 }
@@ -414,35 +501,35 @@
 /* 異常なし：グリーン */
 .summary-block.no-issue {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  border: 1.5px solid rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 /* 要確認：レッド */
 .summary-block.has-issue {
   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 /* 進捗遅延：オレンジ */
 .summary-block.delayed {
   background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
-  border: 1.5px solid rgba(249, 115, 22, 0.3);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
-/* アクティブ時：輪郭を強調 */
+/* アクティブ時：border-color と shadow のみ変更（transform / filter / size は一切触らない） */
 .summary-block.no-issue.active {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5), 0 6px 16px rgba(16, 185, 129, 0.2);
-  filter: brightness(0.97);
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25), 0 6px 16px rgba(16, 185, 129, 0.2);
 }
 
 .summary-block.has-issue.active {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.5), 0 6px 16px rgba(239, 68, 68, 0.2);
-  filter: brightness(0.97);
+  border-color: rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25), 0 6px 16px rgba(239, 68, 68, 0.2);
 }
 
 .summary-block.delayed.active {
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.5), 0 6px 16px rgba(249, 115, 22, 0.2);
-  filter: brightness(0.97);
+  border-color: rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25), 0 6px 16px rgba(249, 115, 22, 0.2);
 }
 
 .summary-count {
@@ -517,4 +604,19 @@
   background: rgba(22, 163, 74, 0.08);
   border-color: #16a34a;
   color: #15803d;
+}
+
+/* エラー時の再試行テキストボタン */
+.btn-text-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  color: var(--primary);
+  background: none;
+  border: 1px solid var(--primary-light, #93c5fd);
+  border-radius: 12px;
+  cursor: pointer;
 }

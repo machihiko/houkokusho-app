@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "WebFetch(domain:yzcpmogrylnjwxzcknbq.supabase.co)",
+      "Bash(xargs ls -la)"
     ]
   }
 }
