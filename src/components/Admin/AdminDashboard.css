@@ -337,6 +337,7 @@
 .report-items {
   flex: 1;
   /* コンテナの残り高さをすべて占有し、件数が減っても下端が揃う */
+  min-height: 240px; /* 0件時もコンテナが縮まない */
   display: flex;
   flex-direction: column;
   gap: 16px;

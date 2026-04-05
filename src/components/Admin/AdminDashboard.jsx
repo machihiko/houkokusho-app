@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../AuthContext';
 import { LogOut, Filter, Bot, FileText, Phone, Mail, MessageCircle, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
@@ -38,6 +38,7 @@ const mapReport = (r) => {
     hasIssue:   r.has_problem ? 'yes' : 'no',
     hasDelay,
     hasPhoto:   (r.photos?.length ?? 0) > 0,
+    photoUrls:  r.photos?.map(p => p.photo_url) ?? [],  // Excel 画像埋め込み用
     content:    content || '（詳細なし）',
   };
 };
@@ -107,15 +108,15 @@ const AdminDashboard = () => {
     setReportsLoading(true);
     setReportsError('');
     try {
-      // !report_id でリレーションを一意に指定（複数FK存在時の曖昧さ回避）
+      // FK制約名で一意にリレーションを指定（複数FK存在時の曖昧さ回避）
       const { data, error } = await supabase
         .from('reports')
         .select(`
           id, genre, department, work_date, has_problem,
-          cleanings!report_id   ( location, item, is_completed, special_notes, notes ),
-          inspections!report_id ( inspection_item, anomaly_level, findings, is_delayed, notes ),
-          repairs!report_id     ( repair_item, repair_detail, repair_action, progress, notes ),
-          photos!report_id      ( photo_url )
+          cleanings!cleanings_report_id_fkey     ( location, item, is_completed, special_notes, notes ),
+          inspections!inspections_report_id_fkey ( inspection_item, anomaly_level, findings, is_delayed, notes ),
+          repairs!repairs_report_id_fkey         ( repair_item, repair_detail, repair_action, progress, notes ),
+          photos!photos_report_id_fkey           ( photo_url )
         `)
         .order('work_date', { ascending: false });
 
@@ -314,7 +315,7 @@ const AdminDashboard = () => {
                     : '\u00a0'}
                 </span>
               </h3>
-              <ExcelExportBtn reports={filteredReports} />
+              <ExcelExportBtn reports={filteredReports} aiSummary={aiSummary} />
             </div>
 
             <div className="report-items">
