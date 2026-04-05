@@ -61,6 +61,7 @@
 
   .panel-reports {
     order: 2;
+    min-height: 400px; /* 0件時にパネルが潰れないよう高さを確保 */
   }
 
   .panel-ai {
@@ -300,8 +301,7 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  /* 内部スクロール用 */
+  overflow: hidden; /* grid セル高さを確定させ、子の flex:1 を機能させる */
 }
 
 /* 常に縦2段: 上段=テキスト、下段=Excelボタン（全サイズ共通） */
@@ -335,11 +335,11 @@
 }
 
 .report-items {
-  flex: 1;
-  /* コンテナの残り高さをすべて占有し、件数が減っても下端が揃う */
-  min-height: 240px; /* 0件時もコンテナが縮まない */
+  flex: 1 1 auto;  /* grow・shrink 両方許可し、常に親の残り領域を占有 */
   display: flex;
   flex-direction: column;
+  align-items: stretch;    /* カードを常に全幅に伸ばす */
+  justify-content: flex-start; /* 上揃え固定 */
   gap: 16px;
   overflow-y: auto;
   scrollbar-gutter: stable; /* スクロールバー出現/消滅で幅が変わらない */

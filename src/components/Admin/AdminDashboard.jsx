@@ -3,6 +3,7 @@ import { useAuth } from '../../AuthContext';
 import { LogOut, Filter, Bot, FileText, Phone, Mail, MessageCircle, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import ExcelExportBtn from './ExcelExportBtn';
+import SingleReportA4Btn from './SingleReportA4Btn';
 import './AdminDashboard.css';
 
 // ── ジャンルキー（DB値）→ 表示名 ──────────────────────
@@ -363,8 +364,9 @@ const AdminDashboard = () => {
                         : (rpt.content.length > 40 ? rpt.content.substring(0, 40) + '…' : rpt.content)
                       }
                     </div>
-                    {/* 担当者連絡ボタン群 */}
+                    {/* 担当者連絡・個別出力ボタン群 */}
                     <div className="card-actions" onClick={e => e.stopPropagation()}>
+                      <SingleReportA4Btn rpt={rpt} />
                       <button
                         className="btn-contact"
                         onClick={() => {

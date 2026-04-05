@@ -156,6 +156,9 @@
   top: 24px;
   left: 50%;
   transform: translateX(-50%);
+  /* 画面幅に合わせて収縮するが最低幅を確保 */
+  width: max-content;
+  max-width: calc(100vw - 32px);
   padding: 20px 24px;
   z-index: 50;
   border: 2px solid var(--primary);
@@ -163,6 +166,7 @@
   flex-direction: column;
   gap: 12px;
   animation: slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-sizing: border-box;
 }
 
 @keyframes slideDown {
@@ -180,8 +184,17 @@
 
 .recovery-actions {
   display: flex;
+  flex-wrap: wrap;   /* 幅が足りない場合は縦並びに折り返す */
   gap: 12px;
   margin-top: 8px;
+}
+
+/* 各ボタンが潰れないよう最低幅を保証 */
+.recovery-actions .btn {
+  flex: 1 1 auto;
+  min-width: 120px;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .toast-notification {
@@ -199,6 +212,92 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
   z-index: 50;
   animation: popIn 0.3s;
+}
+
+/* ── 共通情報セクション ───────────────────────────── */
+.common-section {
+  background: rgba(59, 130, 246, 0.04);
+  border: 1.5px solid rgba(59, 130, 246, 0.18);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.common-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: -4px;
+}
+
+/* ── タスクブロック ──────────────────────────────── */
+.task-block {
+  border: 1.5px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.task-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1.5px dashed var(--surface-border);
+}
+
+.task-block-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.btn-remove-task {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.06);
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-remove-task:hover {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: var(--danger, #ef4444);
+}
+
+/* ── 報告追加ボタン ──────────────────────────────── */
+.btn-add-task {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.06);
+  border: 2px dashed rgba(59, 130, 246, 0.35);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-add-task:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: var(--primary);
 }
 
 /* AI赤ペン先生 */

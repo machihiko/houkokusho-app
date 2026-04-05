@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../AuthContext';
 import EmergencyModal from './EmergencyModal';
 import PhotoUploader from './PhotoUploader';
 import PreviewScreen from './PreviewScreen';
 import VoiceInput from './VoiceInput';
-import { Save, Send, LogOut, AlertTriangle, Bot, Loader } from 'lucide-react';
+import { Save, Send, LogOut, AlertTriangle, Bot, Loader, Plus, X } from 'lucide-react';
 import './ReporterDashboard.css';
 import { supabase } from '../../utils/supabaseClient';
 
+// ── 定数定義 ──────────────────────────────────────────
 const GENRES = [
   { id: 'cleaning',   label: '清掃' },
   { id: 'inspection', label: '点検' },
   { id: 'repair',     label: '修理' },
 ];
 
-// ジャンルごとの入力フィールド定義
 const GENRE_FIELD_DEFS = {
   inspection: [
     { key: 'item', label: '点検項目', type: 'select',
@@ -38,31 +38,30 @@ const GENRE_FIELD_DEFS = {
   ],
 };
 
-// ▼▼▼ プルダウンの選択肢（ここを編集して追加・修正できます） ▼▼▼
 const SELECT_OPTIONS = {
   inspection: {
     item: [
-      { value: 'air_filter',   label: '空調フィルター' },
-      { value: 'fire_equip',   label: '消火設備' },
-      { value: 'drain_pump',   label: '排水ポンプ' },
-      { value: 'electrical',   label: '電気設備' },
-      { value: 'other',        label: 'その他' },
+      { value: 'air_filter',  label: '空調フィルター' },
+      { value: 'fire_equip',  label: '消火設備' },
+      { value: 'drain_pump',  label: '排水ポンプ' },
+      { value: 'electrical',  label: '電気設備' },
+      { value: 'other',       label: 'その他' },
     ],
   },
   cleaning: {
     place: [
-      { value: '1f_toilet',    label: '1Fトイレ' },
-      { value: 'entrance',     label: 'エントランス' },
-      { value: 'corridor',     label: '廊下・通路' },
-      { value: 'parking',      label: '駐車場' },
-      { value: 'other',        label: 'その他' },
+      { value: '1f_toilet',  label: '1Fトイレ' },
+      { value: 'entrance',   label: 'エントランス' },
+      { value: 'corridor',   label: '廊下・通路' },
+      { value: 'parking',    label: '駐車場' },
+      { value: 'other',      label: 'その他' },
     ],
     work: [
-      { value: 'floor_mop',    label: '床面モップ掛け' },
-      { value: 'glass_wipe',   label: 'ガラス清拭' },
-      { value: 'trash',        label: 'ゴミ回収・分別' },
-      { value: 'sink_clean',   label: '洗面台・シンク清掃' },
-      { value: 'other',        label: 'その他' },
+      { value: 'floor_mop',  label: '床面モップ掛け' },
+      { value: 'glass_wipe', label: 'ガラス清拭' },
+      { value: 'trash',      label: 'ゴミ回収・分別' },
+      { value: 'sink_clean', label: '洗面台・シンク清掃' },
+      { value: 'other',      label: 'その他' },
     ],
   },
   repair: {
@@ -74,43 +73,38 @@ const SELECT_OPTIONS = {
       { value: 'other',        label: 'その他' },
     ],
     symptom: [
-      { value: 'water_leak',   label: '水漏れ' },
-      { value: 'broken',       label: '破損・割れ' },
-      { value: 'noise',        label: '異音' },
-      { value: 'not_working',  label: '動作不良' },
-      { value: 'other',        label: 'その他' },
+      { value: 'water_leak',  label: '水漏れ' },
+      { value: 'broken',      label: '破損・割れ' },
+      { value: 'noise',       label: '異音' },
+      { value: 'not_working', label: '動作不良' },
+      { value: 'other',       label: 'その他' },
     ],
     action: [
-      { value: 'replaced',     label: '部品交換により修理完了' },
-      { value: 'temp_fix',     label: '応急処置済み・要経過観察' },
-      { value: 'reported',     label: '業者へ連絡済み・対応待ち' },
-      { value: 'other',        label: 'その他' },
+      { value: 'replaced',  label: '部品交換により修理完了' },
+      { value: 'temp_fix',  label: '応急処置済み・要経過観察' },
+      { value: 'reported',  label: '業者へ連絡済み・対応待ち' },
+      { value: 'other',     label: 'その他' },
     ],
   },
 };
-// ▲▲▲ プルダウンの選択肢ここまで ▲▲▲
 
-// セレクトフィールドの初期選択状態
-const INITIAL_SELECTED_OPTIONS = {
-  inspection: { item: '' },
-  cleaning:   { place: '', work: '' },
-  repair:     { target: '', symptom: '', action: '' },
-};
-
-// ジャンル別フィールドの初期値
 const INITIAL_GENRE_FIELDS = {
   inspection: { item: '' },
   cleaning:   { place: '', work: '', notes: '' },
   repair:     { target: '', symptom: '', action: '' },
 };
 
-// 問題の有無（全ジャンル共通・2択）
+const INITIAL_SELECTED_OPTIONS = {
+  inspection: { item: '' },
+  cleaning:   { place: '', work: '' },
+  repair:     { target: '', symptom: '', action: '' },
+};
+
 const HAS_ISSUE_OPTIONS = [
   { value: false, label: '問題無し', colorClass: 'no' },
   { value: true,  label: '問題あり', colorClass: 'yes' },
 ];
 
-// 異常の有無（点検のみ・4段階）
 const ANOMALY_LEVELS = [
   { value: 0, label: '異常無し',     colorClass: 'level-0' },
   { value: 1, label: '軽微な\n異変', colorClass: 'level-1' },
@@ -118,7 +112,6 @@ const ANOMALY_LEVELS = [
   { value: 3, label: '異常あり',     colorClass: 'level-3' },
 ];
 
-// 進捗状態ボタンの選択肢（ジャンルごとに異なる）
 const PROGRESS_OPTIONS = {
   cleaning:   [
     { value: 'done',        label: '完了' },
@@ -141,454 +134,669 @@ const PROGRESS_LABELS = {
   repair:     '進捗状況',
 };
 
-// 選択時に備考欄が必須になる progress 値
 const PROGRESS_REQUIRES_MEMO = new Set(['incomplete', 'not_started', 'delayed']);
 
+// ── タスク初期値ファクトリー ──────────────────────────
+let _taskSeq = 0;
+const createTask = () => ({
+  _id:            `task_${Date.now()}_${++_taskSeq}`,
+  genre:          'cleaning',
+  department:     '',
+  hasIssue:       false,
+  issueDetail:    '',
+  genreFields:    JSON.parse(JSON.stringify(INITIAL_GENRE_FIELDS)),
+  selectedOptions: JSON.parse(JSON.stringify(INITIAL_SELECTED_OPTIONS)),
+  anomalyLevel:   0,
+  anomalyDetail:  '',
+  progress:       '',
+  showMemo:       false,
+  memo:           '',
+  photos:         [],
+  fieldErrors:    {},
+  progressError:  '',
+});
+
+// ══════════════════════════════════════════════════════
+//  コンポーネント
+// ══════════════════════════════════════════════════════
 const ReporterDashboard = () => {
   const { logout, user } = useAuth();
-  const [showEmergency, setShowEmergency] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showEmergency,      setShowEmergency]      = useState(false);
+  const [showPreview,        setShowPreview]        = useState(false);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
-  const [photos, setPhotos] = useState([]);
 
-  // フォーム基本情報
-  const [formData, setFormData] = useState({
-    genre:       'cleaning',
-    department:  '',
-    hasIssue:    false,   // 問題の有無（全ジャンル共通・boolean）
-    issueDetail: '',
-    date:        new Date().toISOString().split('T')[0],
+  // 共通項目（作業日は空欄スタート → EXIFで自動入力 or 手動入力）
+  const [commonData, setCommonData] = useState({
+    date:         '',
+    selectedArea: '',
+    locationId:   '',
   });
 
-  // ジャンル別入力フィールド
-  const [genreFields, setGenreFields] = useState(INITIAL_GENRE_FIELDS);
+  // 現場一覧
+  const [locations, setLocations] = useState([]);
 
-  // セレクトフィールドの選択状態（'other' 判定に使用）
-  const [selectedOptions, setSelectedOptions] = useState(INITIAL_SELECTED_OPTIONS);
+  // タスク一覧（初期1件）
+  const [tasks, setTasks] = useState([createTask()]);
 
-  // 異常の有無（点検のみ）
-  const [anomalyLevel, setAnomalyLevel] = useState(0);
-  const [anomalyDetail, setAnomalyDetail] = useState('');
-
-  // 備考欄
-  const [showMemo, setShowMemo] = useState(false);
-  const [memo, setMemo] = useState('');
-
-  // 進捗状態（Segmented Control）
-  const [progress, setProgress] = useState('');
-
-  // ── 派生フラグ ──────────────────────────────
-  // hasIssue = true なら問題詳細が必須
-  const issueDetailRequired = formData.hasIssue === true;
-  // 点検かつ anomalyLevel > 0 なら所見が必須
-  const anomalyDetailRequired = anomalyLevel > 0 && formData.genre === 'inspection';
-  // progress が遅延系なら備考が必須
-  const memoRequired = PROGRESS_REQUIRES_MEMO.has(progress);
-
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [progressError, setProgressError] = useState('');
+  // グローバルエラー
   const [validationError, setValidationError] = useState('');
-  const [useAI, setUseAI] = useState(false);
-  const [aiFeedback, setAiFeedback] = useState('');
+
+  // AI赤ペン先生
+  const [useAI,             setUseAI]             = useState(false);
+  const [aiFeedback,        setAiFeedback]        = useState('');
   const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
-  // 備考必須のとき自動で備考欄を開く
+  // ── 現場データ取得 ────────────────────────────────
   useEffect(() => {
-    if (memoRequired) setShowMemo(true);
-  }, [memoRequired]);
-
-  // 現在ジャンルの全入力を1つの文章に結合（PreviewScreen・AI・Excel共用）
-  const buildContent = () => {
-    const defs   = GENRE_FIELD_DEFS[formData.genre];
-    const fields = genreFields[formData.genre];
-    const lines  = defs.map(def => `【${def.label}】${fields[def.key]}`);
-
-    // 問題の有無（全ジャンル共通）
-    lines.push(`【問題の有無】${formData.hasIssue ? '問題あり' : '問題無し'}`);
-    if (formData.issueDetail.trim()) {
-      lines.push(`【問題の詳細】${formData.issueDetail}`);
-    }
-
-    // 異常の有無（点検のみ）
-    if (formData.genre === 'inspection') {
-      const anomalyOpt = ANOMALY_LEVELS.find(l => l.value === anomalyLevel);
-      if (anomalyOpt) {
-        lines.push(`【異常の有無】${anomalyOpt.label.replace('\n', '')}`);
-      }
-      if (anomalyDetail.trim()) {
-        lines.push(`【所見】${anomalyDetail}`);
-      }
-    }
-
-    // 達成度・進捗状況
-    if (progress) {
-      const opt = PROGRESS_OPTIONS[formData.genre].find(o => o.value === progress);
-      if (opt) lines.push(`【${PROGRESS_LABELS[formData.genre]}】${opt.label}`);
-    }
-
-    if ((showMemo || memoRequired) && memo.trim()) {
-      lines.push(`【備考】${memo}`);
-    }
-    return lines.join('\n');
-  };
-
-  // セレクトフィールドの選択変更
-  const updateSelectField = (key, optionValue) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [formData.genre]: { ...prev[formData.genre], [key]: optionValue },
-    }));
-    if (optionValue !== 'other') {
-      // 選択肢のラベルをそのまま genreFields に保存
-      const label = SELECT_OPTIONS[formData.genre][key]?.find(o => o.value === optionValue)?.label ?? '';
-      setGenreFields(prev => ({
-        ...prev,
-        [formData.genre]: { ...prev[formData.genre], [key]: label },
-      }));
-    } else {
-      // その他：テキスト入力に切り替えるため値をクリア
-      setGenreFields(prev => ({
-        ...prev,
-        [formData.genre]: { ...prev[formData.genre], [key]: '' },
-      }));
-    }
-    setFieldErrors(prev => ({ ...prev, [key]: '' }));
-  };
-
-  // ジャンルフィールドを1項目更新
-  const updateGenreField = (key, value) => {
-    setGenreFields(prev => ({
-      ...prev,
-      [formData.genre]: { ...prev[formData.genre], [key]: value },
-    }));
-    setFieldErrors(prev => ({ ...prev, [key]: '' }));
-  };
-
-  // 音声入力の結果をジャンルフィールドに追記
-  const appendToGenreField = (key, text) => {
-    setGenreFields(prev => {
-      const current = prev[formData.genre][key];
-      return {
-        ...prev,
-        [formData.genre]: {
-          ...prev[formData.genre],
-          [key]: current ? `${current}\n${text}` : text,
-        },
-      };
-    });
-    setFieldErrors(prev => ({ ...prev, [key]: '' }));
-  };
-
-  // AI赤ペン先生トグル
-  const handleAIToggle = () => {
-    if (useAI) {
-      setUseAI(false);
-      setAiFeedback('');
-      return;
-    }
-    setUseAI(true);
-    setAiFeedbackLoading(true);
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    console.log('[AI] VITE_GEMINI_API_KEY loaded:', apiKey ? `${apiKey.slice(0, 8)}...` : '★未設定★');
-
-    if (!apiKey) {
-      setAiFeedback('APIキーが設定されていません。.envファイルにVITE_GEMINI_API_KEYを設定し、開発サーバーを再起動してください。');
-      setAiFeedbackLoading(false);
-      return;
-    }
-
-    const genre   = GENRES.find(g => g.id === formData.genre)?.label || formData.genre;
-    const content = buildContent();
-    const prompt = `あなたは現場報告書の添削AIです。以下の報告書の内容を読み、不明確な点・不足している情報・改善すべき表現について日本語で具体的にアドバイスしてください。箇条書きで簡潔に3点以内でまとめてください。問題がなければ「特に指摘はありません」と答えてください。
-
-【ジャンル】${genre}
-【部署】${formData.department || '未入力'}
-【問題の有無】${formData.hasIssue ? '問題あり' : '問題無し'}
-${formData.issueDetail ? `【問題の詳細】${formData.issueDetail}` : ''}
-【報告内容】
-${content}`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    console.log('[AI] Fetching:', url.replace(apiKey, apiKey.slice(0, 8) + '...'));
-
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      }
-    )
-      .then(res => {
-        console.log('[AI] Response status:', res.status, res.statusText);
-        if (!res.ok) {
-          return res.text().then(body => {
-            throw new Error(`HTTP ${res.status} ${res.statusText} - ${body}`);
-          });
-        }
-        return res.json();
-      })
-      .then(data => {
-        console.log('[AI] Response data:', JSON.stringify(data, null, 2));
-        const raw  = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        const text = (raw != null && raw !== '') ? String(raw) : '返答を取得できませんでした。';
-        setAiFeedback(text);
-      })
-      .catch(e => {
-        console.error('[AI] Gemini API error:', e.message, e);
-        setAiFeedback(`AIとの通信に失敗しました。\n詳細: ${e.message}`);
-      })
-      .finally(() => {
-        setAiFeedbackLoading(false);
+    supabase
+      .from('locations')
+      .select('id, name, area')
+      .order('area')
+      .then(({ data, error }) => {
+        if (error) { console.error('[Supabase] locations 取得失敗:', error.message); return; }
+        setLocations(data ?? []);
       });
-  };
-
-  useEffect(() => {
-    const saved = localStorage.getItem('re_report_autosave');
-    if (saved) setShowRecoveryDialog(true);
   }, []);
 
-  // 自動保存（2秒デバウンス）
+  // ── 自動保存ダイアログ検出 ─────────────────────────
   useEffect(() => {
-    const currentFields = genreFields[formData.genre];
-    const hasInput = formData.department ||
-      Object.values(currentFields).some(v => typeof v === 'string' && v.trim());
+    const raw = localStorage.getItem('re_report_autosave');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      // v2 フォーマットのみ復元対象とする
+      if (parsed._version === 2) setShowRecoveryDialog(true);
+      else localStorage.removeItem('re_report_autosave');
+    } catch { localStorage.removeItem('re_report_autosave'); }
+  }, []);
+
+  // ── 自動保存（2秒デバウンス） ──────────────────────
+  useEffect(() => {
+    const hasInput = tasks.some(t =>
+      t.department || Object.values(t.genreFields[t.genre]).some(v => typeof v === 'string' && v.trim())
+    );
     const handler = setTimeout(() => {
       if (hasInput) {
         localStorage.setItem('re_report_autosave', JSON.stringify({
-          ...formData, genreFields, selectedOptions, showMemo, memo, progress,
-          anomalyLevel, anomalyDetail, timestamp: Date.now(),
+          _version: 2,
+          commonData,
+          // photos はバイナリなので保存対象外
+          tasks: tasks.map(t => ({ ...t, photos: [] })),
         }));
       }
     }, 2000);
     return () => clearTimeout(handler);
-  }, [formData, genreFields, showMemo, memo, progress, anomalyLevel, anomalyDetail]);
+  }, [commonData, tasks]);
 
+  // ── 自動保存データを復元 ──────────────────────────
   const recoverData = (accept) => {
     if (accept) {
       try {
         const saved = JSON.parse(localStorage.getItem('re_report_autosave'));
-        setFormData(prev => ({
-          ...prev,
-          genre:       saved.genre        ?? prev.genre,
-          department:  saved.department   ?? prev.department,
-          hasIssue:    saved.hasIssue     ?? prev.hasIssue,
-          issueDetail: saved.issueDetail  ?? prev.issueDetail,
-          date:        saved.date         ?? prev.date,
-        }));
-        if (saved.genreFields)          setGenreFields(saved.genreFields);
-        if (saved.showMemo      != null) setShowMemo(saved.showMemo);
-        if (saved.memo          != null) setMemo(saved.memo);
-        if (saved.progress      != null) setProgress(saved.progress);
-        if (saved.anomalyLevel    != null) setAnomalyLevel(saved.anomalyLevel);
-        if (saved.anomalyDetail   != null) setAnomalyDetail(saved.anomalyDetail);
-        if (saved.selectedOptions != null) setSelectedOptions(saved.selectedOptions);
-      } catch (e) {
-        console.error('Failed to parse autosave data', e);
-      }
+        if (saved.commonData) setCommonData(saved.commonData);
+        if (saved.tasks) {
+          setTasks(saved.tasks.map(t => ({
+            ...createTask(), ...t,
+            photos: [], fieldErrors: {}, progressError: '',
+          })));
+        }
+      } catch (e) { console.error('復元失敗:', e); }
     } else {
       localStorage.removeItem('re_report_autosave');
     }
     setShowRecoveryDialog(false);
   };
 
-  const handleGenreChange = (genreId) => {
-    setFormData(prev => ({ ...prev, genre: genreId }));
-    setProgress('');
-    setProgressError('');
-    setFieldErrors({});
-    setShowMemo(false);
-    // 点検以外に切り替えたら異常関連をリセット
-    if (genreId !== 'inspection') {
-      setAnomalyLevel(0);
-      setAnomalyDetail('');
+  // ── タスク更新ヘルパー ────────────────────────────
+  const updateTask = (idx, partial) =>
+    setTasks(prev => prev.map((t, i) => i === idx ? { ...t, ...partial } : t));
+
+  const updateGenreField = (idx, key, value) => {
+    const t = tasks[idx];
+    updateTask(idx, {
+      genreFields: { ...t.genreFields, [t.genre]: { ...t.genreFields[t.genre], [key]: value } },
+      fieldErrors: { ...t.fieldErrors, [key]: '' },
+    });
+  };
+
+  const updateSelectField = (idx, key, optionValue) => {
+    const t = tasks[idx];
+    const label = optionValue !== 'other'
+      ? (SELECT_OPTIONS[t.genre][key]?.find(o => o.value === optionValue)?.label ?? '')
+      : '';
+    updateTask(idx, {
+      selectedOptions: { ...t.selectedOptions, [t.genre]: { ...t.selectedOptions[t.genre], [key]: optionValue } },
+      genreFields: {
+        ...t.genreFields,
+        [t.genre]: { ...t.genreFields[t.genre], [key]: optionValue !== 'other' ? label : '' },
+      },
+      fieldErrors: { ...t.fieldErrors, [key]: '' },
+    });
+  };
+
+  const appendToGenreField = (idx, key, text) => {
+    const t = tasks[idx];
+    const current = t.genreFields[t.genre][key];
+    updateGenreField(idx, key, current ? `${current}\n${text}` : text);
+  };
+
+  const handleGenreChange = (idx, genreId) => {
+    updateTask(idx, {
+      genre: genreId, progress: '', progressError: '', fieldErrors: {}, showMemo: false,
+      ...(genreId !== 'inspection' ? { anomalyLevel: 0, anomalyDetail: '' } : {}),
+    });
+  };
+
+  const addTask    = () => setTasks(prev => [...prev, createTask()]);
+  const removeTask = (idx) => setTasks(prev => prev.filter((_, i) => i !== idx));
+
+  // ── コンテンツ組み立て（1タスク分） ────────────────
+  const buildContent = (task) => {
+    const { genre, hasIssue, issueDetail, anomalyLevel, anomalyDetail, progress, showMemo, memo } = task;
+    const defs   = GENRE_FIELD_DEFS[genre];
+    const fields = task.genreFields[genre];
+    const lines  = defs.map(def => `【${def.label}】${fields[def.key]}`);
+    lines.push(`【問題の有無】${hasIssue ? '問題あり' : '問題無し'}`);
+    if (issueDetail.trim()) lines.push(`【問題の詳細】${issueDetail}`);
+    if (genre === 'inspection') {
+      const aOpt = ANOMALY_LEVELS.find(l => l.value === anomalyLevel);
+      if (aOpt) lines.push(`【異常の有無】${aOpt.label.replace('\n', '')}`);
+      if (anomalyDetail.trim()) lines.push(`【所見】${anomalyDetail}`);
     }
+    if (progress) {
+      const opt = PROGRESS_OPTIONS[genre].find(o => o.value === progress);
+      if (opt) lines.push(`【${PROGRESS_LABELS[genre]}】${opt.label}`);
+    }
+    if ((showMemo || PROGRESS_REQUIRES_MEMO.has(progress)) && memo.trim()) {
+      lines.push(`【備考】${memo}`);
+    }
+    return lines.join('\n');
   };
 
-  const handleDateExtracted = (extractedDate) => {
-    const formatted = extractedDate.toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, date: formatted }));
-    alert(`写真から撮影日（${formatted}）を取得しました`);
+  // ── プレビューデータ構築（PreviewScreen互換） ──────
+  const buildPreviewData = () => {
+    const first = tasks[0];
+    const combined = tasks.length === 1
+      ? buildContent(first)
+      : tasks
+          .map((t, i) => `━━ 作業${i + 1}（${GENRES.find(g => g.id === t.genre)?.label}） ━━\n${buildContent(t)}`)
+          .join('\n\n');
+    return {
+      genre:       first.genre,
+      department:  first.department,
+      date:        commonData.date,
+      hasIssue:    first.hasIssue,
+      issueDetail: first.issueDetail,
+      hasDelay:    tasks.some(t => PROGRESS_REQUIRES_MEMO.has(t.progress)) ? 'yes' : 'no',
+      content:     combined,
+      photos:      tasks.flatMap(t => t.photos),
+    };
   };
 
-  // 最終送信：reports insert → ジャンル別詳細 insert → 写真アップロード → photos insert
-  const handleConfirm = async () => {
-    const { data: reportRows, error: reportError } = await supabase
-      .from('reports')
-      .insert({
-        genre:       formData.genre,
-        department:  formData.department,
-        work_date:   formData.date,
-        has_problem: formData.hasIssue,
-      })
-      .select('id')
-      .single();
-
-    if (reportError) {
-      console.error('[Supabase] 報告書の保存に失敗しました:', reportError);
-      alert('送信に失敗しました。\n' + reportError.message);
+  // ── AI赤ペン先生 ──────────────────────────────────
+  const handleAIToggle = () => {
+    if (useAI) { setUseAI(false); setAiFeedback(''); return; }
+    setUseAI(true);
+    setAiFeedbackLoading(true);
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      setAiFeedback('APIキーが設定されていません。.envファイルにVITE_GEMINI_API_KEYを設定してください。');
+      setAiFeedbackLoading(false);
       return;
     }
+    const allContent = tasks
+      .map((t, i) => `[作業${i + 1}: ${GENRES.find(g => g.id === t.genre)?.label}]\n${buildContent(t)}`)
+      .join('\n\n');
+    const prompt = `以下の業務報告書の内容を読み、不明確な点・不足している情報・改善すべき表現について日本語で具体的にアドバイスしてください。箇条書きで簡潔に3点以内でまとめてください。問題がなければ「特に指摘はありません」と答えてください。\n\n${allContent}`;
 
-    const reportId     = reportRows.id;
-    const fields       = genreFields[formData.genre];
-    const memoValue    = (showMemo || memoRequired) && memo.trim() ? memo.trim() : null;
-    // 進捗・達成度を画面表示と同じ日本語テキストに変換
-    const progressLabel = PROGRESS_OPTIONS[formData.genre].find(o => o.value === progress)?.label ?? progress;
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    })
+      .then(res => {
+        if (!res.ok) return res.text().then(b => { throw new Error(`HTTP ${res.status} - ${b}`); });
+        return res.json();
+      })
+      .then(data => {
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '返答を取得できませんでした。';
+        setAiFeedback(String(text));
+      })
+      .catch(e => setAiFeedback(`AIとの通信に失敗しました。\n詳細: ${e.message}`))
+      .finally(() => setAiFeedbackLoading(false));
+  };
 
-    // ── ジャンル別詳細テーブルへ insert ──────────────────
-    if (formData.genre === 'cleaning') {
-      const { error } = await supabase.from('cleanings').insert({
-        report_id:     reportId,
-        location:      fields.place,
-        item:          fields.work,
-        is_completed:  progressLabel,
-        special_notes: fields.notes  || null,
-        notes:         memoValue,
-      });
-      if (error) {
-        console.error('[Supabase] cleanings の保存に失敗しました:', error);
-        alert('清掃詳細の送信に失敗しました。\n' + error.message);
-        return;
+  // ── バリデーション（全タスク） ────────────────────
+  const validateAll = () => {
+    setValidationError('');
+    if (!commonData.date) {
+      setValidationError('作業日は必須です。');
+      return false;
+    }
+    for (let idx = 0; idx < tasks.length; idx++) {
+      const task  = tasks[idx];
+      const prefix = tasks.length > 1 ? `作業${idx + 1}：` : '';
+      const defs   = GENRE_FIELD_DEFS[task.genre];
+      const fields = task.genreFields[task.genre];
+
+      if (!task.department) {
+        setValidationError(`${prefix}部署名は必須です。`);
+        return false;
       }
-    } else if (formData.genre === 'inspection') {
-      const { error } = await supabase.from('inspections').insert({
-        report_id:       reportId,
-        inspection_item: fields.item,
-        anomaly_level:   anomalyLevel,
-        findings:        anomalyDetail.trim() || null,
-        is_delayed:      progressLabel,
-        notes:           memoValue,
-      });
-      if (error) {
-        console.error('[Supabase] inspections の保存に失敗しました:', error);
-        alert('点検詳細の送信に失敗しました。\n' + error.message);
-        return;
+      if (!defs.some(def => fields[def.key]?.trim())) {
+        setValidationError(`${prefix}報告内容を少なくとも1項目入力してください。`);
+        return false;
       }
-    } else if (formData.genre === 'repair') {
-      const { error } = await supabase.from('repairs').insert({
-        report_id:     reportId,
-        repair_item:   fields.target,
-        repair_detail: fields.symptom || null,
-        repair_action: fields.action  || null,
-        progress:      progressLabel,
-        notes:         memoValue,
+      if (!task.progress) {
+        updateTask(idx, { progressError: '選択してください' });
+        setValidationError(`${prefix}${PROGRESS_LABELS[task.genre]}を選択してください。`);
+        return false;
+      }
+
+      const MIN_LEN = 5;
+      const minMsg  = 'もう少し具体的に入力してください（5文字以上）';
+      const newFieldErrors = {};
+      defs.forEach(def => {
+        if (def.type === 'select' && task.selectedOptions[task.genre]?.[def.key] !== 'other') return;
+        const val = fields[def.key]?.trim() ?? '';
+        if (val.length > 0 && val.length < MIN_LEN) newFieldErrors[def.key] = minMsg;
       });
-      if (error) {
-        console.error('[Supabase] repairs の保存に失敗しました:', error);
-        alert('修理詳細の送信に失敗しました。\n' + error.message);
-        return;
+      const memoRequired = PROGRESS_REQUIRES_MEMO.has(task.progress);
+      if ((task.showMemo || memoRequired) && task.memo.trim().length > 0 && task.memo.trim().length < MIN_LEN) {
+        newFieldErrors.memo = minMsg;
+      }
+      if (Object.keys(newFieldErrors).length > 0) {
+        updateTask(idx, { fieldErrors: newFieldErrors });
+        return false;
+      }
+
+      if (task.hasIssue && !task.issueDetail.trim()) {
+        setValidationError(`${prefix}問題の詳細を入力してください。`);
+        return false;
+      }
+      if (task.anomalyLevel > 0 && task.genre === 'inspection' && !task.anomalyDetail.trim()) {
+        setValidationError(`${prefix}異常の所見を入力してください。`);
+        return false;
+      }
+      if (memoRequired && !task.memo.trim()) {
+        setValidationError(`${prefix}遅延や未完了の理由を備考欄に入力してください。`);
+        return false;
       }
     }
-
-    if (photos.length > 0) {
-      for (const photo of photos) {
-        try {
-          const rawExt     = photo.name.split('.').pop();
-          const ext        = /^[a-zA-Z0-9]+$/.test(rawExt) ? rawExt.toLowerCase() : 'jpg';
-          const rand       = Math.random().toString(36).slice(2, 10);
-          const uniqueName = `${Date.now()}_${rand}.${ext}`;
-          const filePath   = `${reportId}/${uniqueName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('photos')
-            .upload(filePath, photo.file, { upsert: false });
-
-          if (uploadError) {
-            console.error('[Supabase] 写真のアップロードに失敗しました:', uploadError);
-            continue;
-          }
-
-          const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filePath);
-
-          const { error: photoInsertError } = await supabase
-            .from('photos')
-            .insert({ report_id: reportId, photo_url: urlData.publicUrl });
-
-          if (photoInsertError) {
-            console.error('[Supabase] 写真URLの保存に失敗しました:', photoInsertError);
-          }
-        } catch (e) {
-          console.error('[Supabase] 写真処理中に予期しないエラーが発生しました:', e);
-        }
-      }
-    }
-
-    alert('報告書を送信しました！');
-    localStorage.removeItem('re_report_autosave');
-    window.location.reload();
+    return true;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const defs       = GENRE_FIELD_DEFS[formData.genre];
-    const fields     = genreFields[formData.genre];
-    const hasContent = defs.some(def => fields[def.key]?.trim());
-
-    if (!formData.department) {
-      setValidationError('部署名は必須です。');
-      return;
-    }
-    if (!hasContent) {
-      setValidationError('報告内容を少なくとも1項目入力してください。');
-      return;
-    }
-    if (!progress) {
-      setProgressError('選択してください');
-      return;
-    }
-    setProgressError('');
-
-    // ── 各テキストフィールドの最低文字数チェック（5文字以上） ──
-    const MIN_LEN = 5;
-    const minMsg  = 'もう少し具体的に入力してください（5文字以上）';
-    const newFieldErrors = {};
-    const curFields = genreFields[formData.genre];
-    GENRE_FIELD_DEFS[formData.genre].forEach(def => {
-      // select フィールドは「その他」選択時のみ長さチェック
-      if (def.type === 'select' && selectedOptions[formData.genre]?.[def.key] !== 'other') return;
-      const val = curFields[def.key]?.trim() ?? '';
-      if (val.length > 0 && val.length < MIN_LEN) {
-        newFieldErrors[def.key] = minMsg;
-      }
-    });
-    if ((showMemo || memoRequired) && memo.trim().length > 0 && memo.trim().length < MIN_LEN) {
-      newFieldErrors.memo = minMsg;
-    }
-    if (Object.keys(newFieldErrors).length > 0) {
-      setFieldErrors(newFieldErrors);
-      return;
-    }
-    setFieldErrors({});
-
-    if (issueDetailRequired && !formData.issueDetail.trim()) {
-      setValidationError('問題の詳細を入力してください。');
-      return;
-    }
-    if (anomalyDetailRequired && !anomalyDetail.trim()) {
-      setValidationError('異常の所見を入力してください。');
-      return;
-    }
-    if (memoRequired && !memo.trim()) {
-      setValidationError('遅延や未完了の理由を備考欄に入力してください。');
-      return;
-    }
-    setValidationError('');
-    setShowPreview(true);
+    if (validateAll()) setShowPreview(true);
   };
 
+  // ── 送信（全タスク分 INSERT） ────────────────────
+  const handleConfirm = async () => {
+    for (const task of tasks) {
+      const { data: reportRows, error: reportError } = await supabase
+        .from('reports')
+        .insert({
+          genre:       task.genre,
+          department:  task.department,
+          work_date:   commonData.date,
+          has_problem: task.hasIssue,
+          location_id: commonData.locationId || null,
+        })
+        .select('id')
+        .single();
+
+      if (reportError) {
+        console.error('[Supabase] 報告書の保存に失敗しました:', reportError);
+        alert('送信に失敗しました。\n' + reportError.message);
+        return;
+      }
+
+      const reportId      = reportRows.id;
+      const fields        = task.genreFields[task.genre];
+      const memoRequired  = PROGRESS_REQUIRES_MEMO.has(task.progress);
+      const memoValue     = (task.showMemo || memoRequired) && task.memo.trim() ? task.memo.trim() : null;
+      const progressLabel = PROGRESS_OPTIONS[task.genre].find(o => o.value === task.progress)?.label ?? task.progress;
+
+      if (task.genre === 'cleaning') {
+        const { error } = await supabase.from('cleanings').insert({
+          report_id:     reportId,
+          location:      fields.place,
+          item:          fields.work,
+          is_completed:  progressLabel,
+          special_notes: fields.notes || null,
+          notes:         memoValue,
+        });
+        if (error) { alert('清掃詳細の送信に失敗しました。\n' + error.message); return; }
+      } else if (task.genre === 'inspection') {
+        const { error } = await supabase.from('inspections').insert({
+          report_id:       reportId,
+          inspection_item: fields.item,
+          anomaly_level:   task.anomalyLevel,
+          findings:        task.anomalyDetail.trim() || null,
+          is_delayed:      progressLabel,
+          notes:           memoValue,
+        });
+        if (error) { alert('点検詳細の送信に失敗しました。\n' + error.message); return; }
+      } else if (task.genre === 'repair') {
+        const { error } = await supabase.from('repairs').insert({
+          report_id:     reportId,
+          repair_item:   fields.target,
+          repair_detail: fields.symptom || null,
+          repair_action: fields.action  || null,
+          progress:      progressLabel,
+          notes:         memoValue,
+        });
+        if (error) { alert('修理詳細の送信に失敗しました。\n' + error.message); return; }
+      }
+
+      // 写真アップロード
+      for (const photo of task.photos) {
+        try {
+          const rawExt     = photo.name.split('.').pop();
+          const ext        = /^[a-zA-Z0-9]+$/.test(rawExt) ? rawExt.toLowerCase() : 'jpg';
+          const rand       = Math.random().toString(36).slice(2, 10);
+          const filePath   = `${reportId}/${Date.now()}_${rand}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('photos').upload(filePath, photo.file, { upsert: false });
+          if (uploadError) { console.error('[Supabase] 写真アップロード失敗:', uploadError); continue; }
+          const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filePath);
+          await supabase.from('photos').insert({ report_id: reportId, photo_url: urlData.publicUrl });
+        } catch (e) { console.error('[Supabase] 写真処理エラー:', e); }
+      }
+    }
+
+    alert(`${tasks.length}件の報告書を送信しました！`);
+    localStorage.removeItem('re_report_autosave');
+    window.location.reload();
+  };
+
+  // ── プレビュー表示中 ──────────────────────────────
   if (showPreview) {
     return (
       <PreviewScreen
-        data={{ ...formData, content: buildContent(), photos }}
+        data={buildPreviewData()}
         onBack={() => setShowPreview(false)}
         onConfirm={handleConfirm}
       />
     );
   }
 
-  const currentDefs   = GENRE_FIELD_DEFS[formData.genre];
-  const currentFields = genreFields[formData.genre];
+  // ── タスクブロック描画 ─────────────────────────────
+  const renderTaskBlock = (task, idx) => {
+    const memoRequired          = PROGRESS_REQUIRES_MEMO.has(task.progress);
+    const issueDetailRequired   = task.hasIssue === true;
+    const anomalyDetailRequired = task.anomalyLevel > 0 && task.genre === 'inspection';
+    const defs   = GENRE_FIELD_DEFS[task.genre];
+    const fields = task.genreFields[task.genre];
 
+    return (
+      <div key={task._id} className="task-block">
+        {/* タスクヘッダー */}
+        <div className="task-block-header">
+          <span className="task-block-label">作業 {idx + 1}</span>
+          {tasks.length > 1 && (
+            <button type="button" className="btn-remove-task" onClick={() => removeTask(idx)}>
+              <X size={14} /> 削除
+            </button>
+          )}
+        </div>
+
+        {/* ジャンルタブ */}
+        <div className="form-section">
+          <label>報告ジャンル</label>
+          <div className="genre-tabs">
+            {GENRES.map(g => (
+              <button
+                key={g.id}
+                type="button"
+                className={`genre-tab ${task.genre === g.id ? 'active' : ''}`}
+                onClick={() => handleGenreChange(idx, g.id)}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 部署 */}
+        <div className="form-section">
+          <label>部署</label>
+          <select
+            className="input-field"
+            value={task.department}
+            onChange={e => updateTask(idx, { department: e.target.value })}
+          >
+            <option value="">選択してください</option>
+            <option value="cleaning_dept">清掃部</option>
+            <option value="maintenance_dept">設備管理部</option>
+            <option value="security_dept">警備部</option>
+          </select>
+        </div>
+
+        {/* 問題の有無 */}
+        <div className="form-section">
+          <label>問題の有無</label>
+          <div className="has-issue-seg">
+            {HAS_ISSUE_OPTIONS.map(opt => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                className={`has-issue-btn ${opt.colorClass}${task.hasIssue === opt.value ? ' active' : ''}`}
+                onClick={() => updateTask(idx, {
+                  hasIssue:    opt.value,
+                  issueDetail: opt.value === false ? '' : task.issueDetail,
+                })}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 問題詳細（問題あり時のみ） */}
+        {issueDetailRequired && (
+          <div className="form-section">
+            <div className="label-with-action">
+              <label>問題の詳細（必須）</label>
+              <VoiceInput onResult={text => updateTask(idx, {
+                issueDetail: task.issueDetail ? `${task.issueDetail}\n${text}` : text,
+              })} />
+            </div>
+            <textarea
+              className="input-field issue-detail-area memo-required-input"
+              value={task.issueDetail}
+              onChange={e => updateTask(idx, { issueDetail: e.target.value })}
+              placeholder="問題の内容を具体的に入力してください..."
+              rows={3}
+              data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+              autoComplete="off" data-1p-ignore="true" spellCheck={false}
+            />
+            <p className="memo-required-guide">※問題の内容や状況を具体的に教えてください</p>
+          </div>
+        )}
+
+        {/* 達成度 / 進捗状況 */}
+        <div className="form-section">
+          <label>{PROGRESS_LABELS[task.genre]}</label>
+          <div className={`progress-seg${task.progressError ? ' seg-error' : ''}`}>
+            {PROGRESS_OPTIONS[task.genre].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`progress-seg-btn${task.progress === opt.value ? ' active' : ''}`}
+                onClick={() => updateTask(idx, {
+                  progress:     opt.value,
+                  progressError: '',
+                  showMemo:     PROGRESS_REQUIRES_MEMO.has(opt.value) ? true : task.showMemo,
+                })}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {task.progressError && <p className="field-error">{task.progressError}</p>}
+        </div>
+
+        {/* 写真アップロード */}
+        <div className="form-section">
+          <PhotoUploader
+            photos={task.photos}
+            setPhotos={photos => updateTask(idx, { photos })}
+            currentDate={commonData.date}
+            onDateExtracted={date => {
+              // 作業日が空欄の時のみ呼ばれる（PhotoUploader側でハンドリング済み）
+              const formatted = date.toISOString().split('T')[0];
+              setCommonData(prev => ({ ...prev, date: formatted }));
+            }}
+          />
+        </div>
+
+        {/* ジャンル別フィールド */}
+        <div className="genre-fields-section">
+          <div className="genre-fields-title">■ 報告内容</div>
+
+          {defs.map(def => {
+            const isOther = def.type === 'select'
+              && task.selectedOptions[task.genre]?.[def.key] === 'other';
+            return (
+              <div key={def.key} className="form-section">
+                <div className="label-with-action">
+                  <label>{def.label}</label>
+                  {(def.type === 'textarea' || isOther) && (
+                    <VoiceInput onResult={text => appendToGenreField(idx, def.key, text)} />
+                  )}
+                </div>
+
+                {def.type === 'select' ? (
+                  <>
+                    <select
+                      className={`input-field${task.fieldErrors[def.key] ? ' memo-required-input' : ''}`}
+                      value={task.selectedOptions[task.genre]?.[def.key] ?? ''}
+                      onChange={e => updateSelectField(idx, def.key, e.target.value)}
+                    >
+                      <option value="">選択してください</option>
+                      {SELECT_OPTIONS[task.genre][def.key].map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    {isOther && (
+                      <textarea
+                        className={`input-field genre-field-area${task.fieldErrors[def.key] ? ' memo-required-input' : ''}`}
+                        value={fields[def.key]}
+                        onChange={e => updateGenreField(idx, def.key, e.target.value)}
+                        placeholder={def.placeholder}
+                        rows={2}
+                        data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+                        autoComplete="off" data-1p-ignore="true" spellCheck={false}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <textarea
+                    className={`input-field genre-field-area${task.fieldErrors[def.key] ? ' memo-required-input' : ''}`}
+                    value={fields[def.key]}
+                    onChange={e => updateGenreField(idx, def.key, e.target.value)}
+                    placeholder={def.placeholder}
+                    rows={2}
+                    data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+                    autoComplete="off" data-1p-ignore="true" spellCheck={false}
+                  />
+                )}
+                {task.fieldErrors[def.key] && <p className="field-error">{task.fieldErrors[def.key]}</p>}
+              </div>
+            );
+          })}
+
+          {/* 異常の有無（点検のみ） */}
+          {task.genre === 'inspection' && (
+            <>
+              <div className="form-section">
+                <label>異常の有無</label>
+                <div className="anomaly-seg">
+                  {ANOMALY_LEVELS.map(lv => (
+                    <button
+                      key={lv.value}
+                      type="button"
+                      className={`anomaly-seg-btn ${lv.colorClass}${task.anomalyLevel === lv.value ? ' active' : ''}`}
+                      onClick={() => updateTask(idx, {
+                        anomalyLevel: lv.value,
+                        ...(lv.value === 0 ? { anomalyDetail: '' } : {}),
+                      })}
+                    >
+                      {lv.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {anomalyDetailRequired && (
+                <div className="form-section">
+                  <div className="label-with-action">
+                    <label>所見（必須）</label>
+                    <VoiceInput onResult={text => updateTask(idx, {
+                      anomalyDetail: task.anomalyDetail ? `${task.anomalyDetail}\n${text}` : text,
+                    })} />
+                  </div>
+                  <textarea
+                    className="input-field issue-detail-area memo-required-input"
+                    value={task.anomalyDetail}
+                    onChange={e => updateTask(idx, { anomalyDetail: e.target.value })}
+                    placeholder="異常の内容を具体的に入力してください..."
+                    rows={3}
+                    data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+                    autoComplete="off" data-1p-ignore="true" spellCheck={false}
+                  />
+                  <p className="memo-required-guide">※異常の状況や程度を詳しく教えてください</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 備考欄トグル */}
+          <div className="memo-toggle">
+            <label className="memo-checkbox-label">
+              <input
+                type="checkbox"
+                checked={task.showMemo || memoRequired}
+                disabled={memoRequired}
+                onChange={e => updateTask(idx, { showMemo: e.target.checked })}
+              />
+              備考欄を追加
+              {memoRequired && <span className="memo-required-badge">必須</span>}
+            </label>
+          </div>
+
+          {(task.showMemo || memoRequired) && (
+            <div className="form-section">
+              <div className="label-with-action">
+                <label>{memoRequired ? '備考（理由を記入してください）' : '備考'}</label>
+                <VoiceInput onResult={text => updateTask(idx, {
+                  memo: task.memo ? `${task.memo}\n${text}` : text,
+                })} />
+              </div>
+              <textarea
+                className={`input-field genre-field-area${memoRequired || task.fieldErrors.memo ? ' memo-required-input' : ''}`}
+                value={task.memo}
+                onChange={e => updateTask(idx, { memo: e.target.value, fieldErrors: { ...task.fieldErrors, memo: '' } })}
+                placeholder={memoRequired
+                  ? '例：〇〇の部品が不足しているため、明日手配して再開予定です。 / 本日体調不良により欠勤のため未着手です。'
+                  : '補足事項があれば記入してください...'}
+                rows={3}
+                data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+                autoComplete="off" data-1p-ignore="true" spellCheck={false}
+              />
+              {task.fieldErrors.memo && <p className="field-error">{task.fieldErrors.memo}</p>}
+              {memoRequired && !task.fieldErrors.memo && (
+                <p className="memo-required-guide">※遅延や未完了の理由を詳しく教えてください</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ── メインレンダー ────────────────────────────────
   return (
     <div className="reporter-container">
       {showEmergency && <EmergencyModal onClose={() => setShowEmergency(false)} />}
@@ -616,300 +824,69 @@ ${content}`;
 
       <form className="report-form glass-panel" onSubmit={handleSubmit}>
 
-        {/* ジャンルタブ */}
-        <div className="form-section">
-          <label>報告ジャンル</label>
-          <div className="genre-tabs">
-            {GENRES.map(g => (
-              <button
-                key={g.id}
-                type="button"
-                className={`genre-tab ${formData.genre === g.id ? 'active' : ''}`}
-                onClick={() => handleGenreChange(g.id)}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* ━━ 共通情報 ━━ */}
+        <div className="common-section">
+          <div className="common-section-title">■ 共通情報</div>
 
-        {/* 部署・作業日 */}
-        <div className="form-row">
-          <div className="form-section flex-1">
-            <label>部署</label>
-            <select
-              className="input-field"
-              value={formData.department}
-              onChange={e => setFormData(prev => ({ ...prev, department: e.target.value }))}
-            >
-              <option value="">選択してください</option>
-              <option value="cleaning_dept">清掃部</option>
-              <option value="maintenance_dept">設備管理部</option>
-              <option value="security_dept">警備部</option>
-            </select>
-          </div>
-          <div className="form-section flex-1">
+          {/* 作業日 */}
+          <div className="form-section">
             <label>作業日 (写真から自動取得可)</label>
             <input
               type="date"
               className="input-field"
-              value={formData.date}
-              onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              data-gramm="false"
-              data-gramm_editor="false"
-              data-enable-grammarly="false"
-              autoComplete="off"
-              data-1p-ignore="true"
+              value={commonData.date}
+              onChange={e => setCommonData(prev => ({ ...prev, date: e.target.value }))}
+              data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false"
+              autoComplete="off" data-1p-ignore="true"
             />
           </div>
-        </div>
 
-        {/* 問題の有無（全ジャンル共通・2択ボタン） */}
-        <div className="form-section">
-          <label>問題の有無</label>
-          <div className="has-issue-seg">
-            {HAS_ISSUE_OPTIONS.map(opt => (
-              <button
-                key={String(opt.value)}
-                type="button"
-                className={`has-issue-btn ${opt.colorClass}${formData.hasIssue === opt.value ? ' active' : ''}`}
-                onClick={() => setFormData(prev => ({
-                  ...prev,
-                  hasIssue:    opt.value,
-                  issueDetail: opt.value === false ? '' : prev.issueDetail,
-                }))}
+          {/* エリア・現場 */}
+          <div className="form-row">
+            <div className="form-section flex-1">
+              <label>エリア</label>
+              <select
+                className="input-field"
+                value={commonData.selectedArea}
+                onChange={e => setCommonData(prev => ({ ...prev, selectedArea: e.target.value, locationId: '' }))}
               >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 問題詳細（問題あり の時のみ） */}
-        {issueDetailRequired && (
-          <div className="form-section">
-            <div className="label-with-action">
-              <label>問題の詳細（必須）</label>
-              <VoiceInput onResult={text => setFormData(prev => ({
-                ...prev,
-                issueDetail: prev.issueDetail ? `${prev.issueDetail}\n${text}` : text,
-              }))} />
+                <option value="">エリアを選択してください</option>
+                {[...new Set(locations.map(l => l.area))].map(area => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
             </div>
-            <textarea
-              className="input-field issue-detail-area memo-required-input"
-              value={formData.issueDetail}
-              onChange={e => setFormData(prev => ({ ...prev, issueDetail: e.target.value }))}
-              placeholder="問題の内容を具体的に入力してください..."
-              rows={3}
-              data-gramm="false"
-              data-gramm_editor="false"
-              data-enable-grammarly="false"
-              autoComplete="off"
-              data-1p-ignore="true"
-              spellCheck={false}
-            />
-            <p className="memo-required-guide">※問題の内容や状況を具体的に教えてください</p>
-          </div>
-        )}
-
-        {/* 達成度 / 進捗状況 */}
-        <div className="form-section">
-          <label>{PROGRESS_LABELS[formData.genre]}</label>
-          <div className={`progress-seg${progressError ? ' seg-error' : ''}`}>
-            {PROGRESS_OPTIONS[formData.genre].map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`progress-seg-btn${progress === opt.value ? ' active' : ''}`}
-                onClick={() => { setProgress(opt.value); setProgressError(''); }}
+            <div className="form-section flex-1">
+              <label>現場</label>
+              <select
+                className="input-field"
+                value={commonData.locationId}
+                disabled={!commonData.selectedArea}
+                onChange={e => setCommonData(prev => ({ ...prev, locationId: e.target.value }))}
               >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {progressError && (
-            <p className="field-error">{progressError}</p>
-          )}
-        </div>
-
-        {/* 写真アップロード */}
-        <div className="form-section">
-          <PhotoUploader
-            photos={photos}
-            setPhotos={setPhotos}
-            onDateExtracted={handleDateExtracted}
-          />
-        </div>
-
-        {/* ジャンル別入力フィールド */}
-        <div className="genre-fields-section">
-          <div className="genre-fields-title">■ 報告内容</div>
-
-          {currentDefs.map(def => {
-            const isOther = def.type === 'select'
-              && selectedOptions[formData.genre]?.[def.key] === 'other';
-            return (
-              <div key={def.key} className="form-section">
-                <div className="label-with-action">
-                  <label>{def.label}</label>
-                  {/* テキスト入力時のみ音声入力を表示 */}
-                  {(def.type === 'textarea' || isOther) && (
-                    <VoiceInput onResult={text => appendToGenreField(def.key, text)} />
-                  )}
-                </div>
-
-                {def.type === 'select' ? (
-                  <>
-                    <select
-                      className={`input-field${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
-                      value={selectedOptions[formData.genre]?.[def.key] ?? ''}
-                      onChange={e => updateSelectField(def.key, e.target.value)}
-                    >
-                      <option value="">選択してください</option>
-                      {SELECT_OPTIONS[formData.genre][def.key].map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    {isOther && (
-                      <textarea
-                        className={`input-field genre-field-area${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
-                        value={currentFields[def.key]}
-                        onChange={e => updateGenreField(def.key, e.target.value)}
-                        placeholder={def.placeholder}
-                        rows={2}
-                        data-gramm="false"
-                        data-gramm_editor="false"
-                        data-enable-grammarly="false"
-                        autoComplete="off"
-                        data-1p-ignore="true"
-                        spellCheck={false}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <textarea
-                    className={`input-field genre-field-area${fieldErrors[def.key] ? ' memo-required-input' : ''}`}
-                    value={currentFields[def.key]}
-                    onChange={e => updateGenreField(def.key, e.target.value)}
-                    placeholder={def.placeholder}
-                    rows={2}
-                    data-gramm="false"
-                    data-gramm_editor="false"
-                    data-enable-grammarly="false"
-                    autoComplete="off"
-                    data-1p-ignore="true"
-                    spellCheck={false}
-                  />
-                )}
-
-                {fieldErrors[def.key] && (
-                  <p className="field-error">{fieldErrors[def.key]}</p>
-                )}
-              </div>
-            );
-          })}
-
-          {/* 異常の有無（点検のみ・4段階ボタン） */}
-          {formData.genre === 'inspection' && (
-            <>
-              <div className="form-section">
-                <label>異常の有無</label>
-                <div className="anomaly-seg">
-                  {ANOMALY_LEVELS.map(lv => (
-                    <button
-                      key={lv.value}
-                      type="button"
-                      className={`anomaly-seg-btn ${lv.colorClass}${anomalyLevel === lv.value ? ' active' : ''}`}
-                      onClick={() => {
-                        setAnomalyLevel(lv.value);
-                        if (lv.value === 0) setAnomalyDetail('');
-                      }}
-                    >
-                      {lv.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 所見（異常レベル > 0 のときのみ） */}
-              {anomalyDetailRequired && (
-                <div className="form-section">
-                  <div className="label-with-action">
-                    <label>所見（必須）</label>
-                    <VoiceInput onResult={text => setAnomalyDetail(prev => prev ? `${prev}\n${text}` : text)} />
-                  </div>
-                  <textarea
-                    className="input-field issue-detail-area memo-required-input"
-                    value={anomalyDetail}
-                    onChange={e => setAnomalyDetail(e.target.value)}
-                    placeholder="異常の内容を具体的に入力してください..."
-                    rows={3}
-                    data-gramm="false"
-                    data-gramm_editor="false"
-                    data-enable-grammarly="false"
-                    autoComplete="off"
-                    data-1p-ignore="true"
-                    spellCheck={false}
-                  />
-                  <p className="memo-required-guide">※異常の状況や程度を詳しく教えてください</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* 備考欄トグル（必須時はチェックを外せない） */}
-          <div className="memo-toggle">
-            <label className="memo-checkbox-label">
-              <input
-                type="checkbox"
-                checked={showMemo || memoRequired}
-                disabled={memoRequired}
-                onChange={e => setShowMemo(e.target.checked)}
-              />
-              備考欄を追加
-              {memoRequired && <span className="memo-required-badge">必須</span>}
-            </label>
-          </div>
-
-          {(showMemo || memoRequired) && (
-            <div className="form-section">
-              <div className="label-with-action">
-                <label>
-                  {memoRequired ? '備考（理由を記入してください）' : '備考'}
-                </label>
-                <VoiceInput onResult={text => setMemo(prev => prev ? `${prev}\n${text}` : text)} />
-              </div>
-              <textarea
-                className={`input-field genre-field-area${memoRequired || fieldErrors.memo ? ' memo-required-input' : ''}`}
-                value={memo}
-                onChange={e => { setMemo(e.target.value); setFieldErrors(prev => ({ ...prev, memo: '' })); }}
-                placeholder={memoRequired
-                  ? '例：〇〇の部品が不足しているため、明日手配して再開予定です。 / 本日体調不良により欠勤のため未着手です。'
-                  : '補足事項があれば記入してください...'}
-                rows={3}
-                data-gramm="false"
-                data-gramm_editor="false"
-                data-enable-grammarly="false"
-                autoComplete="off"
-                data-1p-ignore="true"
-                spellCheck={false}
-              />
-              {fieldErrors.memo && (
-                <p className="field-error">{fieldErrors.memo}</p>
-              )}
-              {memoRequired && !fieldErrors.memo && (
-                <p className="memo-required-guide">
-                  ※遅延や未完了の理由を詳しく教えてください
-                </p>
-              )}
+                <option value="">
+                  {commonData.selectedArea ? '現場を選択してください' : '先にエリアを選択してください'}
+                </option>
+                {locations
+                  .filter(l => l.area === commonData.selectedArea)
+                  .map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
             </div>
-          )}
+          </div>
         </div>
+
+        {/* ━━ タスクブロック（1件ずつ） ━━ */}
+        {tasks.map((task, idx) => renderTaskBlock(task, idx))}
+
+        {/* 報告追加ボタン */}
+        <button type="button" className="btn-add-task" onClick={addTask}>
+          <Plus size={18} /> 別の報告を追加する
+        </button>
 
         {/* AI赤ペン先生 */}
         <div className="ai-toggle-section">
           <div className="ai-info">
-            <Bot size={24} color={useAI ? "var(--primary)" : "var(--text-muted)"} />
+            <Bot size={24} color={useAI ? 'var(--primary)' : 'var(--text-muted)'} />
             <div>
               <h3>AI自動添削（赤ペン先生）</h3>
               <p>報告内容の不足や誤字脱字をAIがチェックします</p>
@@ -944,7 +921,6 @@ ${content}`;
             確認画面へ進む <Send size={18} />
           </button>
         </div>
-
       </form>
     </div>
   );
