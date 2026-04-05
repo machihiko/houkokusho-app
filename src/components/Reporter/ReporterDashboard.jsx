@@ -4,7 +4,7 @@ import EmergencyModal from './EmergencyModal';
 import PhotoUploader from './PhotoUploader';
 import PreviewScreen from './PreviewScreen';
 import VoiceInput from './VoiceInput';
-import { Save, Send, LogOut, AlertTriangle, Bot, Loader, Plus, X } from 'lucide-react';
+import { Save, Send, LogOut, AlertTriangle, /*Bot, Loader,*/ Plus, X } from 'lucide-react';
 import './ReporterDashboard.css';
 import { supabase } from '../../utils/supabaseClient';
 
@@ -25,8 +25,8 @@ const GENRE_FIELD_DEFS = {
       placeholder: 'その他の場合は具体的に入力してください...' },
     { key: 'work',   label: '清掃内容',  type: 'select',
       placeholder: 'その他の場合は具体的に入力してください...' },
-    { key: 'notes',  label: '特記事項',  type: 'textarea',
-      placeholder: '例：特になし / 落書きを発見、管理者へ報告済み' },
+    // { key: 'notes',  label: '特記事項',  type: 'textarea',
+    //   placeholder: '例：特になし / 落書きを発見、管理者へ報告済み' },
   ],
   repair: [
     { key: 'target',  label: '対象箇所',  type: 'select',
@@ -181,10 +181,10 @@ const ReporterDashboard = () => {
   // グローバルエラー
   const [validationError, setValidationError] = useState('');
 
-  // AI赤ペン先生
-  const [useAI,             setUseAI]             = useState(false);
-  const [aiFeedback,        setAiFeedback]        = useState('');
-  const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
+  // AI赤ペン先生（一時非表示のためコメントアウト）
+  // const [useAI,             setUseAI]             = useState(false);
+  // const [aiFeedback,        setAiFeedback]        = useState('');
+  // const [aiFeedbackLoading, setAiFeedbackLoading] = useState(false);
 
   // ── 現場データ取得 ────────────────────────────────
   useEffect(() => {
@@ -333,8 +333,8 @@ const ReporterDashboard = () => {
     };
   };
 
-  // ── AI赤ペン先生 ──────────────────────────────────
-  const handleAIToggle = () => {
+  // ── AI赤ペン先生（一時非表示のためコメントアウト） ──
+  /* const handleAIToggle = () => {
     if (useAI) { setUseAI(false); setAiFeedback(''); return; }
     setUseAI(true);
     setAiFeedbackLoading(true);
@@ -364,7 +364,7 @@ const ReporterDashboard = () => {
       })
       .catch(e => setAiFeedback(`AIとの通信に失敗しました。\n詳細: ${e.message}`))
       .finally(() => setAiFeedbackLoading(false));
-  };
+  }; */
 
   // ── バリデーション（全タスク） ────────────────────
   const validateAll = () => {
@@ -883,7 +883,7 @@ const ReporterDashboard = () => {
           <Plus size={18} /> 別の報告を追加する
         </button>
 
-        {/* AI赤ペン先生 */}
+        {/* AI赤ペン先生（一時非表示）
         <div className="ai-toggle-section">
           <div className="ai-info">
             <Bot size={24} color={useAI ? 'var(--primary)' : 'var(--text-muted)'} />
@@ -909,6 +909,7 @@ const ReporterDashboard = () => {
             {!aiFeedbackLoading && <p>{aiFeedback}</p>}
           </div>
         )}
+        */}
 
         {validationError && (
           <div className="validation-error">
