@@ -2,6 +2,7 @@ import { useState } from 'react';
 import exifr from 'exifr';
 import { Camera, X } from 'lucide-react';
 import { correctOrientation } from '../../utils/correctOrientation';
+import { compressImage } from '../../utils/imageCompression';
 import './PhotoUploader.css';
 
 const MAX_PHOTOS = 10;
@@ -13,22 +14,27 @@ const toDateStr = (date) => date.toISOString().split('T')[0];
 const toDisplayDate = (yyyymmdd) => yyyymmdd.replace(/-/g, '/');
 
 const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' }) => {
-  const [error,    setError]    = useState('');
-  const [modalUrl, setModalUrl] = useState(null);
+  const [error,         setError]         = useState('');
+  const [modalUrl,      setModalUrl]      = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
     setError('');
+    setIsCompressing(true);
 
     const newPhotos = [];
 
     for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
 
-      // EXIF Orientation 補正済み URL を先に取得
+      // EXIF Orientation 補正済み URL を取得（プレビュー表示用）
       const url = await correctOrientation(file);
 
-      // ── EXIF 撮影日を取得 ──────────────────────────
+      // 画像圧縮（Supabase Storageアップロード用に軽量化）
+      const compressedFile = await compressImage(file);
+
+      // ── EXIF 撮影日を取得（元ファイルから読む）──────
       let exifDateStr = null;
       try {
         const exifData = await exifr.parse(file);
@@ -56,9 +62,11 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
         // dates match → そのまま追加
       }
 
-      newPhotos.push({ file, url, name: file.name });
+      // プレビューは向き補正済みURL、アップロードは圧縮済みFile
+      newPhotos.push({ file: compressedFile, url, name: file.name });
     }
 
+    setIsCompressing(false);
     if (newPhotos.length === 0) return;
 
     const merged = [...photos, ...newPhotos];
@@ -106,16 +114,27 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
           ))}
 
           {photos.length < MAX_PHOTOS && (
-            <label className="upload-btn">
+            <label className={`upload-btn${isCompressing ? ' upload-btn--compressing' : ''}`}>
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 multiple
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
+                disabled={isCompressing}
               />
-              <Camera size={22} color="var(--primary)" />
-              <span>追加</span>
+              {isCompressing ? (
+                <>
+                  <span className="compress-spinner" />
+                  <span>圧縮中...</span>
+                </>
+              ) : (
+                <>
+                  <Camera size={22} color="var(--primary)" />
+                  <span>追加</span>
+                </>
+              )}
             </label>
           )}
         </div>

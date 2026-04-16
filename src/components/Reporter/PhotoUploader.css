@@ -126,6 +126,32 @@
   color: var(--primary);
 }
 
+.upload-btn--compressing {
+  cursor: default;
+  border-color: #94a3b8;
+  color: #64748b;
+  pointer-events: none;
+}
+.upload-btn--compressing:hover {
+  border-color: #94a3b8;
+  background: rgba(255,255,255,0.5);
+  color: #64748b;
+}
+
+/* 圧縮中スピナー */
+.compress-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #cbd5e1;
+  border-top-color: var(--primary, #3b82f6);
+  border-radius: 50%;
+  animation: compress-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes compress-spin {
+  to { transform: rotate(360deg); }
+}
+
 .error-text {
   color: var(--danger);
   font-size: 0.85rem;
