@@ -20,9 +20,16 @@
   /* ↓ 追加: ヘッダーは縮まない */
 }
 
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .admin-grid {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  /* フィルター列の幅を厳密に固定し、右列の伸縮によるシフトを防ぐ */
+  grid-template-columns: 360px minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   grid-template-areas:
     "filter  reports"
@@ -35,6 +42,10 @@
 /* 各パネルのグリッドエリア割当 */
 .panel-filter {
   grid-area: filter;
+  /* 幅を列幅に完全固定し、内側コンテンツがはみ出さないようにする */
+  width: 360px;
+  max-width: 360px;
+  overflow: hidden;
 }
 
 .panel-ai {
@@ -44,6 +55,8 @@
 
 .panel-reports {
   grid-area: reports;
+  /* 左側フィルターの高さ変化がレポート列に影響しないよう分離 */
+  overflow: hidden;
 }
 
 /* スマホ: 縦1列、① filter → ② reports → ③ ai の順 */
@@ -462,6 +475,26 @@
   padding: 40px;
 }
 
+/* ── サマリーコンテキストタイトル ───────────────────── */
+.summary-context {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.summary-context-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.summary-context-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 /* ── サマリーブロック（カード型） ────────────────────── */
 .summary-blocks {
   display: flex;
@@ -607,6 +640,434 @@
   color: #15803d;
 }
 
+/* ── カード：時刻・現場・ジャンルピル ────────────────── */
+.rpt-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.rpt-location {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.rpt-genre-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.genre-pill {
+  padding: 1px 8px;
+  border-radius: 12px;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: white;
+}
+
+.genre-pill-cleaning   { background: #0ea5e9; }
+.genre-pill-inspection { background: #6366f1; }
+.genre-pill-repair     { background: #f59e0b; }
+.genre-pill-patrol     { background: #10b981; }
+.genre-pill-emergency  { background: #ef4444; }
+
+/* カード右端の開閉シェブロン */
+.card-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* badge.neutral */
+.badge.neutral {
+  background: #94a3b8;
+}
+
+/* ── 展開詳細エリア ──────────────────────────────────── */
+.card-expanded-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 共通情報ブロック */
+.expanded-common-info {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.exp-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* 行レイアウト（ラベル + 値）*/
+.exp-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 0.88rem;
+}
+
+.exp-row:last-child {
+  border-bottom: none;
+}
+
+.exp-label {
+  min-width: 80px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.exp-value {
+  color: var(--text-main);
+  flex: 1;
+}
+
+/* バッジ（予定通り / 遅延・問題）*/
+.exp-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.exp-badge.badge-ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #065f46;
+}
+
+.exp-badge.badge-alert {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+}
+
+/* ── タスクカード ─────────────────────────────────────── */
+.exp-task-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ジャンル別ヘッダー色 */
+.exp-task-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+.exp-task-header-cleaning   { background: #e0f2fe; color: #0c4a6e; }
+.exp-task-header-inspection { background: #ede9fe; color: #3730a3; }
+.exp-task-header-repair     { background: #fef3c7; color: #78350f; }
+.exp-task-header-patrol     { background: #d1fae5; color: #064e3b; }
+.exp-task-header-emergency  { background: #fee2e2; color: #7f1d1d; }
+
+.exp-task-num {
+  font-weight: 700;
+}
+
+.exp-task-genre {
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.exp-task-body {
+  padding: 10px 14px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 報告内容テキストブロック */
+.exp-content-block {
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.exp-content-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.exp-content-text {
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* 写真グリッド */
+.exp-photos {
+  margin-top: 8px;
+}
+
+.exp-photos-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.exp-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.exp-photo-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  display: block;
+}
+
+.exp-photo-img:hover {
+  opacity: 0.85;
+}
+
+/* ── 期間・表示形式コントロール ─────────────────────────── */
+.view-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  flex-shrink: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 左：期間タブ（セグメント型） */
+.view-period-tabs {
+  display: flex;
+  gap: 2px;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.view-period-tab {
+  padding: 6px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.view-period-tab:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-main);
+}
+
+.view-period-tab.active {
+  background: white;
+  color: var(--primary, #3b82f6);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+/* 右：表示形式トグル（小さめ） */
+/* ソート + 表示形式のラッパー */
+.view-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ソート切り替えボタン */
+.sort-order-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sort-order-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary, #3b82f6);
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: 2px;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.view-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text-main);
+}
+
+.view-mode-btn.active {
+  background: white;
+  color: var(--primary, #3b82f6);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+/* ── テーブルビュー ──────────────────────────────────────── */
+.daily-table-wrap {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  min-height: 0;
+}
+
+.daily-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  /* テーブル外周の罫線 */
+  border: 1px solid #cbd5e1;
+}
+
+.daily-table thead tr {
+  background: #1e3a5f;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.daily-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  /* 列区切り罫線（右辺のみ） */
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+.daily-table th:last-child { border-right: none; }
+
+.daily-table td {
+  padding: 9px 14px;
+  /* 全セルにグレー罫線（Excel 風）*/
+  border: 1px solid #e2e8f0;
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.daily-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* 偶数行に薄い帯色でスキャン性を向上 */
+.daily-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+.daily-table tbody tr:nth-child(even):hover {
+  background: #eef2f7;
+}
+
+/* 問題あり行 */
+.daily-table tbody tr.tr-issue {
+  background: #fff5f5;
+}
+.daily-table tbody tr.tr-issue:hover {
+  background: #ffe4e4;
+}
+
+/* 遅延行 */
+.daily-table tbody tr.tr-delay {
+  background: #fff7ed;
+}
+.daily-table tbody tr.tr-delay:hover {
+  background: #fdecd7;
+}
+
+/* 問題あり＋遅延行 */
+.daily-table tbody tr.tr-issue-delay {
+  background: #fff1f2;
+}
+.daily-table tbody tr.tr-issue-delay:hover {
+  background: #ffe4e7;
+}
+
+/* 報告内容列：折り返し・最大幅制限 */
+.td-findings {
+  max-width: 220px;
+  white-space: normal;
+  word-break: break-all;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+/* 時間列：折り返しなし */
+.td-nowrap {
+  white-space: nowrap;
+}
+
 /* エラー時の再試行テキストボタン */
 .btn-text-refresh {
   display: inline-flex;
@@ -620,4 +1081,130 @@
   border: 1px solid var(--primary-light, #93c5fd);
   border-radius: 12px;
   cursor: pointer;
+}
+
+/* ── カレンダー（react-calendar） ──────────────────��──── */
+
+/* カレンダーを収める filter-item */
+.filter-item-calendar {
+  margin-bottom: 12px;
+}
+
+.filter-item-calendar > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* 選択中日付の小ラベル */
+.cal-selected-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+/* react-calendar 全体リセット & テーマ適用 */
+.filter-panel .react-calendar {
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+/* 月ビューの日付エリアに最小高を設けて
+   4週/5週/6週の月切り替えでの高さ変動を防ぐ */
+.filter-panel .react-calendar__month-view__days {
+  min-height: 192px;
+}
+
+/* ナビゲーションバー */
+.filter-panel .react-calendar__navigation {
+  background: var(--primary, #3b82f6);
+  margin-bottom: 0;
+}
+.filter-panel .react-calendar__navigation button {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  min-width: 28px;
+}
+.filter-panel .react-calendar__navigation button:enabled:hover,
+.filter-panel .react-calendar__navigation button:enabled:focus {
+  background: rgba(255,255,255,0.2);
+}
+
+/* 曜日ヘッダー */
+.filter-panel .react-calendar__month-view__weekdays {
+  background: #eff6ff;
+  font-size: 0.7rem;
+}
+.filter-panel .react-calendar__month-view__weekdays__weekday {
+  padding: 4px;
+  text-align: center;
+  font-weight: 600;
+  color: #3b82f6;
+}
+.filter-panel .react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none;
+}
+
+/* 日付タイル */
+.filter-panel .react-calendar__tile {
+  padding: 4px 2px 6px;
+  font-size: 0.78rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* 今日 */
+.filter-panel .react-calendar__tile--now {
+  background: #eff6ff;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+/* 選択中 */
+.filter-panel .react-calendar__tile--active,
+.filter-panel .react-calendar__tile--active:enabled:hover,
+.filter-panel .react-calendar__tile--active:enabled:focus {
+  background: var(--primary, #3b82f6);
+  color: #fff;
+  border-radius: 6px;
+}
+
+/* ホバー */
+.filter-panel .react-calendar__tile:enabled:hover,
+.filter-panel .react-calendar__tile:enabled:focus {
+  background: #dbeafe;
+  border-radius: 6px;
+}
+
+/* 報告ありドット */
+.cal-dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+}
+
+/* 選択中タイルのドットは白に */
+.filter-panel .react-calendar__tile--active .cal-dot {
+  background: rgba(255,255,255,0.85);
 }

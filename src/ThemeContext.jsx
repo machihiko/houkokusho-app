@@ -1,8 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-
-const ThemeContext = createContext();
-
-export const useTheme = () => useContext(ThemeContext);
+import { useState, useEffect } from 'react';
+import ThemeContext from './theme-context';
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(localStorage.getItem('app-theme') || 'default');
@@ -13,7 +10,7 @@ export const ThemeProvider = ({ children }) => {
     { id: 'green', name: 'Emerald Green' },
     { id: 'blue', name: 'Ocean Blue' },
     { id: 'pink', name: 'Sakura Pink' },
-    { id: 'orange', name: 'Sunset Orange' }
+    { id: 'orange', name: 'Sunset Orange' },
   ];
 
   useEffect(() => {

@@ -1,0 +1,285 @@
+/* ════════════════════════════════════════════════════════════
+   SingleReportA4Btn — 個別出力設定モーダル
+   ════════════════════════════════════════════════════════════ */
+
+/* ── オーバーレイ ─────────────────────────────────────────── */
+.a4-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: a4OverlayIn 0.18s ease;
+}
+
+@keyframes a4OverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── モーダル本体 ─────────────────────────────────────────── */
+.a4-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(30, 58, 95, 0.22);
+  width: min(460px, 94vw);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: a4ModalIn 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes a4ModalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ── ヘッダー ─────────────────────────────────────────────── */
+.a4-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.a4-modal-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e3a5f;
+}
+
+.a4-modal-header-title h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1e3a5f;
+}
+
+.a4-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.a4-modal-close:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* ── 対象サマリーバー ─────────────────────────────────────── */
+.a4-modal-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  font-size: 0.82rem;
+}
+
+.a4-modal-summary-date {
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.a4-modal-summary-dept {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.a4-modal-summary-person {
+  color: #475569;
+}
+
+.a4-modal-summary-count {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+/* ── スクロール可能ボディ ──────────────────────────────────── */
+.a4-modal-body {
+  overflow-y: auto;
+}
+
+/* ── セクション ───────────────────────────────────────────── */
+.a4-modal-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.a4-modal-section:last-child {
+  border-bottom: none;
+}
+
+.a4-modal-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 10px;
+}
+
+/* ── ファイル名入力 ───────────────────────────────────────── */
+.a4-modal-filename-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.a4-modal-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #f8fafc;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.a4-modal-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: #fff;
+}
+
+.a4-modal-ext {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── 写真枚数セレクト行 ───────────────────────────────────── */
+.a4-modal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.a4-modal-row-label {
+  font-size: 0.88rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.a4-modal-row-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+.a4-modal-select {
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-width: 140px;
+}
+
+.a4-modal-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.a4-modal-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── セクション ON/OFF チェックボックス ──────────────────── */
+.a4-modal-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.a4-modal-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  padding: 5px 6px;
+  border-radius: 7px;
+  transition: background 0.1s;
+}
+
+.a4-modal-toggle-item:hover {
+  background: #f1f5f9;
+}
+
+.a4-modal-toggle-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── アクション ───────────────────────────────────────────── */
+.a4-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+
+/* ── レスポンシブ ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .a4-modal {
+    border-radius: 14px 14px 0 0;
+    align-self: flex-end;
+    width: 100vw;
+  }
+
+  .a4-modal-overlay {
+    align-items: flex-end;
+  }
+
+  .a4-modal-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .a4-modal-select {
+    width: 100%;
+  }
+}

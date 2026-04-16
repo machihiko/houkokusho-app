@@ -7,7 +7,10 @@
       "Bash(supabase --version)",
       "Bash(curl -s \"https://yzcpmogrylnjwxzcknbq.supabase.co/rest/v1/rpc/version\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6Y3Btb2dyeWxuand4emNrbmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NDQzNzYsImV4cCI6MjA5MDIyMDM3Nn0.9IFiK0jP5nqVFVJLiYBoWrXn-VANBYBfLqPTXu7vOd8\")",
       "Bash(node -e \"require\\(''file-saver''\\)\")",
-      "Bash(npm install file-saver)"
+      "Bash(npm install file-saver)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm run build)",
+      "Bash(npm install react-calendar)"
     ]
   }
 }

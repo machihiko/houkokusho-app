@@ -7,16 +7,18 @@ import './VoiceInput.css';
  * onResult(text): 録音停止時に認識テキストを返すコールバック
  */
 const VoiceInput = ({ onResult }) => {
-  const [ready, setReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [liveText, setLiveText] = useState('');
   const recognitionRef = useRef(null);
+  const isSupported = typeof window !== 'undefined'
+    && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
   // stale closure を避けるため transcript を ref でも管理
   const transcriptRef = useRef('');
 
   useEffect(() => {
+    if (!isSupported) return undefined;
+
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return; // 非対応ブラウザではボタンを非表示にする
 
     const recognition = new SR();
     recognition.continuous = true;
@@ -43,11 +45,14 @@ const VoiceInput = ({ onResult }) => {
     };
 
     recognitionRef.current = recognition;
-    setReady(true);
-  }, []);
+    return () => {
+      recognition.stop();
+      recognitionRef.current = null;
+    };
+  }, [isSupported]);
 
   // SpeechRecognition 非対応ブラウザでは何も表示しない
-  if (!ready) return null;
+  if (!isSupported) return null;
 
   const toggleRecording = () => {
     if (isRecording) {

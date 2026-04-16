@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../AuthContext';
-import { useTheme } from '../../ThemeContext';
 import { Phone, CheckCircle, AlertTriangle } from 'lucide-react';
 import './EmergencyModal.css';
 
 const EmergencyModal = ({ onClose }) => {
   const [timeLeft, setTimeLeft] = useState(24 * 60 * 60); // 24 hours in seconds for demo
-  const { theme } = useTheme();
 
   useEffect(() => {
     const timer = setInterval(() => {

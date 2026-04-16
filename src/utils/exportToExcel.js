@@ -1,9 +1,9 @@
 import ExcelJS from 'exceljs';
 
 const DEPARTMENT_LABELS = {
-  cleaning_dept: '清掃部',
-  maintenance_dept: '設備管理部',
-  security_dept: '警備部',
+  shinjuku_cleaning: '新宿ビル 定期清掃案件',
+  iruma_ac:          '入間パーク 空調保守・点検',
+  tower_patrol:      '〇〇タワー 巡回警備業務',
 };
 
 const GENRE_LABELS = {
@@ -100,7 +100,7 @@ export async function exportToExcel(data) {
   // 基本情報行: A=見出し, B:D 結合=値
   const infoRows = [
     ['ジャンル', GENRE_LABELS[data.genre] || data.genre],
-    ['部署', DEPARTMENT_LABELS[data.department] || data.department || '未選択'],
+    ['案件名', DEPARTMENT_LABELS[data.department] || data.department || '未選択'],
     ['作業日', data.date],
     ['問題の有無', data.hasIssue === 'yes' ? '有り' : '無し'],
   ];

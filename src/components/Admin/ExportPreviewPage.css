@@ -1,0 +1,508 @@
+/* ════════════════════════════════════════════════════════════
+   ExportPreviewPage — 専用プレビュー画面スタイル
+   ════════════════════════════════════════════════════════════ */
+
+/* ── ルートコンテナ ───────────────────────────────────────── */
+.ep-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-color);
+}
+
+/* ── 上部ヘッダーバー ─────────────────────────────────────── */
+.ep-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  flex-shrink: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--surface-border);
+  z-index: 10;
+}
+
+.ep-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  color: var(--primary);
+}
+
+.ep-header-title h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.ep-header-title p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.ep-back-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+}
+
+.ep-download-btn {
+  flex-shrink: 0;
+  padding: 10px 20px;
+}
+
+/* ── メインボディ（2ペイン）────────────────────────────────── */
+.ep-body {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  flex: 1 1 auto;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* ── 設定パネル（左サイドバー）─────────────────────────────── */
+.ep-sidebar {
+  border-radius: 0;
+  border-right: 1px solid var(--surface-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+.ep-sidebar-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ep-sidebar-section-cols {
+  flex: 1;
+}
+
+.ep-sidebar-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 10px;
+}
+
+/* ── ファイル名入力 ───────────────────────────────────────── */
+.ep-filename-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ep-filename-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.9);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ep-filename-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: #fff;
+}
+
+.ep-filename-ext {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── カテゴリグループ ─────────────────────────────────────── */
+.ep-cat-group {
+  margin-bottom: 14px;
+}
+
+.ep-cat-group:last-child {
+  margin-bottom: 0;
+}
+
+.ep-cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.ep-cat-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  background: #eff6ff;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.ep-cat-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.ep-toggle-btn {
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.ep-toggle-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.ep-toggle-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ── 列チェックボックス ───────────────────────────────────── */
+.ep-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 2px;
+}
+
+.ep-col-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+  padding: 3px 4px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.ep-col-item:hover {
+  background: #f1f5f9;
+}
+
+.ep-col-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── 選択列数カウント ─────────────────────────────────────── */
+.ep-col-count {
+  padding: 12px 20px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-align: center;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* ── プレビューエリア（右）───────────────────────────────── */
+.ep-preview {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.ep-preview-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.ep-preview-info {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.ep-preview-photo-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  color: #f59e0b;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+.ep-preview-scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0;
+}
+
+/* ── プレビューテーブル ───────────────────────────────────── */
+.ep-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.82rem;
+}
+
+.ep-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.ep-th-num,
+.ep-td-num {
+  width: 36px;
+  min-width: 36px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.ep-th-num {
+  background: #0f2744;
+  color: rgba(255,255,255,0.5);
+}
+
+.ep-th {
+  background: #1e3a5f;
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 12px;
+  white-space: nowrap;
+  text-align: left;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  letter-spacing: 0.02em;
+}
+
+.ep-th:last-child {
+  border-right: none;
+}
+
+/* 列幅ヒント */
+.ep-th-findings     { min-width: 200px; }
+.ep-th-task_detail  { min-width: 120px; }
+.ep-th-symptom,
+.ep-th-action_taken { min-width: 100px; }
+.ep-th-photos       { min-width: 80px;  }
+
+/* ── 行スタイル ──────────────────────────────────────────── */
+.ep-table tbody tr {
+  transition: background 0.1s;
+}
+
+.ep-table tbody tr:nth-child(even) {
+  background: #f0f7ff;
+}
+
+.ep-table tbody tr:nth-child(odd) {
+  background: #fff;
+}
+
+.ep-table tbody tr:hover {
+  background: #dbeafe !important;
+}
+
+.ep-tr-issue       { background: #fff5f5 !important; }
+.ep-tr-issue:nth-child(even) { background: #fee2e2 !important; }
+.ep-tr-delay       { background: #fffbeb !important; }
+.ep-tr-delay:nth-child(even) { background: #fef3c7 !important; }
+.ep-tr-issue-delay { background: #fff1f2 !important; }
+.ep-tr-issue-delay:nth-child(even) { background: #ffe4e6 !important; }
+
+/* ── セルスタイル ─────────────────────────────────────────── */
+.ep-td {
+  padding: 7px 12px;
+  color: var(--text-main);
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+.ep-td:last-child {
+  border-right: none;
+}
+
+.ep-td-num {
+  padding: 7px 6px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* 長文フィールドは折り返し + 行数制限 */
+.ep-td-wrap {
+  white-space: pre-wrap;
+  max-width: 280px;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ep-td-center {
+  text-align: center;
+}
+
+/* ── バッジ ───────────────────────────────────────────────── */
+.ep-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ep-badge-alert {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.ep-badge-ok {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.ep-badge-warn {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* ── ジャンルピル ─────────────────────────────────────────── */
+.ep-genre-pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.ep-genre-cleaning   { background: #3b82f6; }
+.ep-genre-inspection { background: #7c3aed; }
+.ep-genre-repair     { background: #d97706; }
+.ep-genre-patrol     { background: #16a34a; }
+.ep-genre-emergency  { background: #dc2626; }
+
+/* ── 写真セル ─────────────────────────────────────────────── */
+.ep-td-photos {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ep-photo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.ep-no-photo {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+/* ── 空・エラー状態 ───────────────────────────────────────── */
+.ep-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.ep-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  height: 100vh;
+  color: var(--text-muted);
+}
+
+/* ── レスポンシブ（タブレット以下）─────────────────────────── */
+@media (max-width: 900px) {
+  .ep-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    overflow-y: auto;
+  }
+
+  .ep-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--surface-border);
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .ep-preview {
+    min-height: 300px;
+  }
+
+  .ep-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ep-header-title {
+    order: -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .ep-header {
+    padding: 10px 16px;
+  }
+
+  .ep-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

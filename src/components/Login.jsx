@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAuth } from '../AuthContext';
-import { useTheme } from '../ThemeContext';
+import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import { ShieldAlert, User, LogIn, Palette } from 'lucide-react';
 import './Login.css';
 

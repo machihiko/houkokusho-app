@@ -65,6 +65,69 @@
   flex: 1;
 }
 
+/* 時間入力 + 現在時刻ボタン */
+.time-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-input-row .input-field {
+  flex: 1;
+}
+
+.btn-now-time {
+  flex-shrink: 0;
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-now-time:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
+}
+
+.gps-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-gps {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-gps:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
+}
+
+.gps-result {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.4;
+}
+
 .genre-tabs {
   display: flex;
   background: rgba(0,0,0,0.05);
@@ -449,6 +512,19 @@ input:checked + .slider:before {
   accent-color: var(--primary);
 }
 
+/* 必須バッジ（汎用） */
+.required-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.72rem;
+  border-radius: 4px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 /* 備考必須バッジ */
 .memo-required-badge {
   display: inline-block;
@@ -665,4 +741,81 @@ input:checked + .slider:before {
     font-size: 0.78rem;
     padding: 10px 4px;
   }
+}
+
+/* ── 同行者セクション ─────────────────────────────── */
+.btn-coworker-toggle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1.5px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-coworker-toggle:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
+}
+
+.co-workers-summary {
+  font-size: 0.88rem;
+  color: var(--text-main);
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.co-workers-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1.5px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.co-worker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.12s;
+  user-select: none;
+}
+.co-worker-item:hover {
+  background: rgba(59, 130, 246, 0.07);
+}
+.co-worker-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* 「その他」自由入力欄のサブラベル */
+.field-other-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.co-workers-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px;
+  margin: 0;
 }
