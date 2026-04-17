@@ -76,6 +76,36 @@
   flex: 1;
 }
 
+/* 作業日 + 今日ボタン */
+.date-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-input-row .input-field {
+  flex: 1;
+}
+
+.today-btn {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.today-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: var(--primary);
+}
+
 .btn-now-time {
   flex-shrink: 0;
   padding: 7px 10px;
@@ -130,27 +160,49 @@
 
 .genre-tabs {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   background: rgba(0,0,0,0.05);
-  padding: 4px;
+  padding: 6px;
   border-radius: 12px;
 }
 
 .genre-tab {
-  flex: 1;
-  padding: 10px;
+  flex: 1 1 calc(33% - 6px); /* 3列ベース、折り返し可 */
+  min-width: 72px;
+  padding: 14px 8px;
   border: none;
   background: transparent;
   border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
+  /* タップ領域を確保 */
+  min-height: 48px;
+  touch-action: manipulation;
 }
 
 .genre-tab.active {
   background: white;
   color: var(--primary);
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* ＋ジャンル追加ボタン */
+.genre-tab--add {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 14px 10px;
+  font-size: 1.1rem;
+  color: var(--primary);
+  border: 1.5px dashed rgba(59,130,246,0.4);
+  background: rgba(59,130,246,0.04);
+}
+.genre-tab--add:hover {
+  background: rgba(59,130,246,0.1);
+  border-color: var(--primary);
 }
 
 .radio-group {

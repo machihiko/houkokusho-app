@@ -158,6 +158,45 @@
   margin-top: 6px;
 }
 
+/* ── 写真追加メニュー ──────────────────────── */
+.photo-menu {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  animation: photo-menu-in 0.15s ease-out;
+}
+
+@keyframes photo-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.photo-menu-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 1.5px solid var(--surface-border, #e2e8f0);
+  border-radius: 10px;
+  background: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+  cursor: pointer;
+  transition: all 0.15s;
+  touch-action: manipulation;
+  /* タップ領域確保 */
+  min-height: 48px;
+}
+
+.photo-menu-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: var(--primary, #3b82f6);
+  color: var(--primary, #3b82f6);
+}
+
 /* ── 拡大モーダル ─────────────────────────── */
 .photo-modal-overlay {
   position: fixed;

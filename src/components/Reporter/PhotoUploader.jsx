@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import exifr from 'exifr';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, Image } from 'lucide-react';
 import { correctOrientation } from '../../utils/correctOrientation';
 import { compressImage } from '../../utils/imageCompression';
 import './PhotoUploader.css';
@@ -17,6 +17,11 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
   const [error,         setError]         = useState('');
   const [modalUrl,      setModalUrl]      = useState(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [showMenu,      setShowMenu]      = useState(false);
+
+  // 2種類のファイル入力への参照（capture 属性の有無で分ける）
+  const cameraInputRef  = useRef(null);
+  const libraryInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
@@ -114,16 +119,11 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
           ))}
 
           {photos.length < MAX_PHOTOS && (
-            <label className={`upload-btn${isCompressing ? ' upload-btn--compressing' : ''}`}>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-                disabled={isCompressing}
-              />
+            <button
+              type="button"
+              className={`upload-btn${isCompressing ? ' upload-btn--compressing' : ''}`}
+              onClick={() => !isCompressing && setShowMenu(v => !v)}
+            >
               {isCompressing ? (
                 <>
                   <span className="compress-spinner" />
@@ -135,10 +135,60 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
                   <span>追加</span>
                 </>
               )}
-            </label>
+            </button>
           )}
         </div>
       </div>
+
+      {/* カメラ/ライブラリ 選択メニュー */}
+      {showMenu && (
+        <div className="photo-menu">
+          <button
+            type="button"
+            className="photo-menu-item"
+            onClick={() => {
+              setShowMenu(false);
+              cameraInputRef.current?.click();
+            }}
+          >
+            <Camera size={18} />
+            カメラを起動
+          </button>
+          <button
+            type="button"
+            className="photo-menu-item"
+            onClick={() => {
+              setShowMenu(false);
+              libraryInputRef.current?.click();
+            }}
+          >
+            <Image size={18} />
+            ライブラリから選ぶ
+          </button>
+        </div>
+      )}
+
+      {/* 隠しファイル入力：カメラ起動用（capture あり） */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        disabled={isCompressing}
+      />
+      {/* 隠しファイル入力：ライブラリ選択用（capture なし） */}
+      <input
+        ref={libraryInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        disabled={isCompressing}
+      />
 
       {error && <div className="error-text mt-2">{error}</div>}
 

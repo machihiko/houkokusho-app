@@ -7,14 +7,22 @@ import VoiceInput from './VoiceInput';
 import { Save, Send, LogOut, AlertTriangle, Plus, X, Clock, Users } from 'lucide-react';
 import './ReporterDashboard.css';
 import { supabase } from '../../utils/supabaseClient';
+import { GENRES } from '../../constants/genres';
 
 // ── 定数定義 ──────────────────────────────────────────
-const GENRES = [
-  { id: 'cleaning',   label: '清掃' },
-  { id: 'inspection', label: '点検' },
-  { id: 'repair',     label: '修理' },
-  { id: 'patrol',     label: '巡回' },
-  { id: 'emergency',  label: '緊急対応' },
+
+/**
+ * 案件名フォールバックデータ（DB の departments テーブルが空の場合に使用）
+ * area フィールドを持ち、エリア選択時に絞り込みが機能する
+ * 本番運用では Supabase の departments テーブルに area 列を追加して管理する
+ */
+const MOCK_DEPARTMENTS = [
+  { id: 'shinjuku_cleaning', name: '新宿ビル 定期清掃案件',    area: '新宿エリア' },
+  { id: 'shinjuku_patrol',   name: '新宿ビル 巡回警備業務',    area: '新宿エリア' },
+  { id: 'iruma_ac',          name: '入間パーク 空調保守・点検', area: '入間エリア' },
+  { id: 'iruma_cleaning',    name: '入間パーク 定期清掃案件',  area: '入間エリア' },
+  { id: 'tower_patrol',      name: '〇〇タワー 巡回警備業務',  area: '〇〇タワーエリア' },
+  { id: 'tower_repair',      name: '〇〇タワー 設備修繕案件',  area: '〇〇タワーエリア' },
 ];
 
 const TARGET_PLACE_OPTIONS = [
@@ -161,6 +169,8 @@ const createTask = () => ({
 const ReporterDashboard = () => {
   const { logout, user } = useAuth();
   const [showEmergency,      setShowEmergency]      = useState(false);
+  // ユーザーが追加したカスタムジャンル（セッション中のみ保持）
+  const [customGenres, setCustomGenres] = useState([]);
   const [showPreview,        setShowPreview]        = useState(false);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(() => {
     const raw = localStorage.getItem('re_report_autosave');
@@ -224,7 +234,7 @@ const ReporterDashboard = () => {
   }, []);
 
   useEffect(() => {
-    supabase.from('departments').select('id, name').order('name')
+    supabase.from('departments').select('id, name, area').order('name')
       .then(({ data, error }) => {
         if (error) { console.error('[Supabase] departments 取得失敗:', error.message); return; }
         if (data?.length > 0) setDepartments(data);
@@ -425,7 +435,15 @@ const ReporterDashboard = () => {
         .from('departments').insert({ name: deptName }).select('id').single();
       if (deptErr) { alert('案件名の追加に失敗しました: ' + deptErr.message); return; }
       finalDepartmentId = newDept.id;
-      setDepartments(prev => [...prev, { id: newDept.id, name: deptName }]);
+      // エリア情報を含めて追加し、選択状態を即時反映
+      const areaForNewDept = commonData.selectedArea !== 'other' ? commonData.selectedArea : null;
+      setDepartments(prev => [...prev, { id: newDept.id, name: deptName, area: areaForNewDept }]);
+      setCommonData(prev => ({
+        ...prev,
+        departmentId:      newDept.id,
+        departmentName:    deptName,
+        newDepartmentName: '',
+      }));
     }
 
     // ① reports（親）を1件 INSERT
@@ -594,7 +612,7 @@ const ReporterDashboard = () => {
         <div className="form-section">
           <label>報告ジャンル</label>
           <div className="genre-tabs">
-            {GENRES.map(g => (
+            {[...GENRES, ...customGenres].map(g => (
               <button
                 key={g.id}
                 type="button"
@@ -604,6 +622,20 @@ const ReporterDashboard = () => {
                 {g.label}
               </button>
             ))}
+            {/* ジャンル追加ボタン */}
+            <button
+              type="button"
+              className="genre-tab genre-tab--add"
+              title="ジャンルを追加"
+              onClick={() => {
+                const name = window.prompt('新しいジャンル名を入力してください\n（例：除草、除雪、消毒など）');
+                if (!name?.trim()) return;
+                const id = `custom_${Date.now()}`;
+                setCustomGenres(prev => [...prev, { id, label: name.trim() }]);
+              }}
+            >
+              ＋
+            </button>
           </div>
         </div>
 
@@ -886,13 +918,25 @@ const ReporterDashboard = () => {
           {/* 作業日 */}
           <div className="form-section">
             <label>作業日 (写真から自動取得可)</label>
-            <input
-              type="date"
-              className="input-field"
-              value={commonData.date}
-              onChange={e => setCommonData(prev => ({ ...prev, date: e.target.value }))}
-              autoComplete="off" data-1p-ignore="true"
-            />
+            <div className="date-input-row">
+              <input
+                type="date"
+                className="input-field"
+                value={commonData.date}
+                onChange={e => setCommonData(prev => ({ ...prev, date: e.target.value }))}
+                autoComplete="off" data-1p-ignore="true"
+              />
+              <button
+                type="button"
+                className="today-btn"
+                onClick={() => setCommonData(prev => ({
+                  ...prev,
+                  date: new Date().toLocaleDateString('sv-SE'), // YYYY-MM-DD 形式
+                }))}
+              >
+                今日
+              </button>
+            </div>
           </div>
 
           {/* 対応時間 */}
@@ -942,6 +986,9 @@ const ReporterDashboard = () => {
                   locationName:    '',
                   newAreaName:     '',
                   newLocationName: '',
+                  // エリアが変わったら案件選択もリセット
+                  departmentId:    '',
+                  departmentName:  '',
                 }))}
               >
                 <option value="">エリアを選択してください</option>
@@ -1065,16 +1112,25 @@ const ReporterDashboard = () => {
             >
               <option value="">選択してください</option>
               {departments.length > 0
-                ? departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))
-                : (
-                  <>
-                    <option value="shinjuku_cleaning">新宿ビル 定期清掃案件</option>
-                    <option value="iruma_ac">入間パーク 空調保守・点検</option>
-                    <option value="tower_patrol">〇〇タワー 巡回警備業務</option>
-                  </>
-                )
+                ? (() => {
+                    // エリア選択中は、そのエリアに紐づく案件のみ表示
+                    // (area カラムが空/未設定の案件は常に表示する)
+                    const filtered = commonData.selectedArea && commonData.selectedArea !== 'other'
+                      ? departments.filter(d => !d.area || d.area === commonData.selectedArea)
+                      : departments;
+                    return filtered.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ));
+                  })()
+                : (() => {
+                    // DB未設定時のフォールバック: MOCK_DEPARTMENTS もエリアで絞り込む
+                    const fallback = commonData.selectedArea && commonData.selectedArea !== 'other'
+                      ? MOCK_DEPARTMENTS.filter(d => !d.area || d.area === commonData.selectedArea)
+                      : MOCK_DEPARTMENTS;
+                    return fallback.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ));
+                  })()
               }
               <option value="other">その他（新規追加）</option>
             </select>
