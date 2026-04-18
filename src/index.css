@@ -56,6 +56,75 @@
   --shadow: 0 8px 32px rgba(249, 115, 22, 0.1);
 }
 
+/* ── パステルピンク ────────────────────────────────── */
+[data-theme="pastel-pink"] {
+  --primary: #e879a8;
+  --primary-light: #f9a8d4;
+  --primary-dark: #db2777;
+  --bg-color: #fff0f8;
+  --shadow: 0 8px 32px rgba(232, 121, 168, 0.15);
+}
+
+/* ── クラシックダーク（夜間作業向け） ──────────────── */
+[data-theme="dark"] {
+  --primary: #818cf8;
+  --primary-light: #a5b4fc;
+  --primary-dark: #6366f1;
+  --bg-color: #0f172a;
+  --surface: rgba(30, 41, 59, 0.9);
+  --surface-border: rgba(71, 85, 105, 0.6);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+}
+
+/* ダークモード：入力フィールド全般 */
+[data-theme="dark"] .input-field {
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--text-main);
+  border-color: rgba(71, 85, 105, 0.7);
+}
+[data-theme="dark"] .input-field:focus {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: var(--primary);
+}
+[data-theme="dark"] .input-field option {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+/* ダークモード：ボタン・セグメント */
+[data-theme="dark"] .has-issue-btn {
+  background: rgba(30, 41, 59, 0.7);
+  color: var(--text-main);
+  border-color: rgba(71, 85, 105, 0.6);
+}
+[data-theme="dark"] .task-block {
+  background: rgba(15, 23, 42, 0.4);
+  border-color: rgba(71, 85, 105, 0.5);
+}
+[data-theme="dark"] .common-section {
+  background: rgba(15, 23, 42, 0.3);
+}
+[data-theme="dark"] .photo-menu-item {
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--text-main);
+}
+[data-theme="dark"] .role-btn.active {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+/* ── フォレストグリーン ─────────────────────────────── */
+[data-theme="forest"] {
+  --primary: #15803d;
+  --primary-light: #22c55e;
+  --primary-dark: #14532d;
+  --bg-color: #e9f5ec;
+  --shadow: 0 8px 32px rgba(21, 128, 61, 0.12);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

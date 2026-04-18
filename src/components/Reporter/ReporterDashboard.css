@@ -65,6 +65,59 @@
   flex: 1;
 }
 
+/* ── セレクト＋アクションボタン行 ─────────────── */
+.select-with-actions {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.select-with-actions .input-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-select-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 50px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.15rem;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-select-action:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.btn-select-action:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btn-select-action:disabled {
+  background: var(--text-muted, #94a3b8);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-select-action--danger { background: #dc2626; }
+.btn-select-action--danger:hover:not(:disabled) { background: #b91c1c; }
+
+@media (max-width: 600px) {
+  .btn-select-action {
+    width: 40px;
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
 /* 時間入力 + 現在時刻ボタン */
 .time-input-row {
   display: flex;

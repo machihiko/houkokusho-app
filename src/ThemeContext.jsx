@@ -5,12 +5,15 @@ export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(localStorage.getItem('app-theme') || 'default');
   
   const themes = [
-    { id: 'default', name: 'Office Blue' },
-    { id: 'red', name: 'Ruby Red' },
-    { id: 'green', name: 'Emerald Green' },
-    { id: 'blue', name: 'Ocean Blue' },
-    { id: 'pink', name: 'Sakura Pink' },
-    { id: 'orange', name: 'Sunset Orange' },
+    { id: 'default',      name: 'Office Blue'      },
+    { id: 'red',          name: 'Ruby Red'          },
+    { id: 'green',        name: 'Emerald Green'     },
+    { id: 'blue',         name: 'Ocean Blue'        },
+    { id: 'pink',         name: 'Sakura Pink'       },
+    { id: 'orange',       name: 'Sunset Orange'     },
+    { id: 'pastel-pink',  name: 'パステルピンク'    },
+    { id: 'dark',         name: 'クラシックダーク'  },
+    { id: 'forest',       name: 'フォレストグリーン' },
   ];
 
   useEffect(() => {

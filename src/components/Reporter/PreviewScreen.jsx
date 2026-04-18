@@ -1,13 +1,6 @@
 import { ArrowLeft, Send, FileSpreadsheet, Camera } from 'lucide-react';
+import { GENRE_FORM_SCHEMA, HAS_PROBLEM_CONFIG } from '../../constants/genreFormSchema';
 import './PreviewScreen.css';
-
-const GENRE_LABELS = {
-  cleaning:   '清掃',
-  inspection: '点検',
-  repair:     '修理',
-  patrol:     '巡回',
-  emergency:  '緊急対応',
-};
 
 // ── コンポーネント ──────────────────────────────────
 const PreviewScreen = ({ tasks, commonData, profiles, onBack, onConfirm }) => {
@@ -71,20 +64,25 @@ const PreviewScreen = ({ tasks, commonData, profiles, onBack, onConfirm }) => {
 
         {/* 各タスク */}
         {tasks.map((task, idx) => {
-          const genreLabel = GENRE_LABELS[task.genre] ?? task.genre;
+          // ジャンル表示名はスキーマキーまたはカスタムラベルから取得
+          const schema     = GENRE_FORM_SCHEMA[task.genre] ?? GENRE_FORM_SCHEMA._fallback;
+          const hpCfg      = HAS_PROBLEM_CONFIG[task.genre] ?? HAS_PROBLEM_CONFIG._default;
+          const genreLabel = task.genreLabel ?? task.genre;
 
-          // タスク詳細の行データ
+          // customFields からスキーマ順にテキスト値を並べる
+          const cf = task.customFields ?? {};
           const taskRows = [
-            ...(task.targetPlace ? [{ label: '担当場所', value: task.targetPlace }] : []),
-            ...(task.taskDetail   ? [{ label: '作業内容', value: task.taskDetail   }] : []),
-            ...(task.symptom      ? [{ label: '症状',     value: task.symptom      }] : []),
-            ...(task.actionTaken  ? [{ label: '対応内容', value: task.actionTaken  }] : []),
+            ...schema
+              .map(field => {
+                const val = cf[field.key];
+                if (!val?.trim()) return null;
+                return { label: field.label, value: val };
+              })
+              .filter(Boolean),
             ...(task.genre !== 'emergency'
               ? [{
-                  label: ['inspection', 'patrol'].includes(task.genre) ? '異常の有無' : '問題の有無',
-                  value: task.hasProblem
-                    ? (['inspection', 'patrol'].includes(task.genre) ? '異常あり' : '問題あり')
-                    : (['inspection', 'patrol'].includes(task.genre) ? '異常無し' : '問題無し'),
+                  label: hpCfg.label,
+                  value: task.hasProblem ? hpCfg.yesLabel : hpCfg.noLabel,
                   alert: task.hasProblem,
                 }]
               : []),

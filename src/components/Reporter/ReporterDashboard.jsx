@@ -8,6 +8,7 @@ import { Save, Send, LogOut, AlertTriangle, Plus, X, Clock, Users } from 'lucide
 import './ReporterDashboard.css';
 import { supabase } from '../../utils/supabaseClient';
 import { GENRES } from '../../constants/genres';
+import { GENRE_FORM_SCHEMA, HAS_PROBLEM_CONFIG } from '../../constants/genreFormSchema';
 
 // ── 定数定義 ──────────────────────────────────────────
 
@@ -25,104 +26,6 @@ const MOCK_DEPARTMENTS = [
   { id: 'tower_repair',      name: '〇〇タワー 設備修繕案件',  area: '〇〇タワーエリア' },
 ];
 
-const TARGET_PLACE_OPTIONS = [
-  { value: 'entrance',  label: 'エントランス' },
-  { value: '1f_toilet', label: '1Fトイレ' },
-  { value: '2f_toilet', label: '2Fトイレ' },
-  { value: 'corridor',  label: '廊下・通路' },
-  { value: 'parking',   label: '駐車場' },
-  { value: 'staircase', label: '階段' },
-  { value: 'roof',      label: '屋上' },
-  { value: 'elec_room', label: '電気室' },
-  { value: 'mech_room', label: '機械室' },
-  { value: 'other',     label: 'その他' },
-];
-
-const TASK_DETAIL_OPTIONS = {
-  cleaning: [
-    { value: 'floor_mop',    label: '床面モップ掛け' },
-    { value: 'trash',        label: 'ゴミ回収・分別' },
-    { value: 'glass_wipe',   label: 'ガラス拭き' },
-    { value: 'toilet_clean', label: 'トイレ清掃' },
-    { value: 'supply',       label: '備品補充' },
-    { value: 'other',        label: 'その他' },
-  ],
-  inspection: [
-    { value: 'fire_equip',   label: '消防設備' },
-    { value: 'air_cond',     label: '空調設備' },
-    { value: 'plumbing',     label: '給排水設備' },
-    { value: 'electrical',   label: '電気設備' },
-    { value: 'exterior',     label: '外観・建具' },
-    { value: 'other',        label: 'その他' },
-  ],
-  repair: [
-    { value: 'toilet_tap',   label: 'トイレ水栓' },
-    { value: 'door_knob',    label: 'ドアノブ' },
-    { value: 'lighting',     label: '蛍光灯' },
-    { value: 'wall_floor',   label: '壁紙・床材' },
-    { value: 'other',        label: 'その他' },
-  ],
-  patrol: [
-    { value: 'perimeter',    label: '建物外周' },
-    { value: 'corridor',     label: '各階通路' },
-    { value: 'parking',      label: '駐車場・駐輪場' },
-    { value: 'other',        label: 'その他' },
-  ],
-  emergency: [
-    { value: 'water_leak',   label: '水漏れ対応' },
-    { value: 'power_out',    label: '停電対応' },
-    { value: 'intrusion',    label: '不審者対応' },
-    { value: 'injury',       label: '負傷者対応' },
-    { value: 'other',        label: 'その他' },
-  ],
-};
-
-// ジャンル別症状の選択肢（点検・修理・巡回・緊急対応で異なる）
-const SYMPTOM_OPTIONS = {
-  inspection: [
-    { value: 'malfunction',  label: '動作不良' },
-    { value: 'noise_smell',  label: '異音・異臭' },
-    { value: 'lamp_out',     label: 'ランプ切れ' },
-    { value: 'dirt_clog',    label: '汚れ・詰まり' },
-    { value: 'other',        label: 'その他' },
-  ],
-  repair: [
-    { value: 'water_leak',   label: '水漏れ' },
-    { value: 'broken',       label: '破損・割れ' },
-    { value: 'light_fail',   label: '点灯不良' },
-    { value: 'peeling',      label: '剥がれ' },
-    { value: 'other',        label: 'その他' },
-  ],
-  patrol: [
-    { value: 'suspicious',   label: '不審物あり' },
-    { value: 'bike',         label: '放置自転車あり' },
-    { value: 'light_out',    label: '照明切れ' },
-    { value: 'other',        label: 'その他' },
-  ],
-  emergency: [
-    { value: 'water_leak',   label: '水漏れ' },
-    { value: 'power_out',    label: '停電' },
-    { value: 'intrusion',    label: '不審者' },
-    { value: 'injury',       label: '負傷者' },
-    { value: 'other',        label: 'その他' },
-  ],
-};
-
-// ジャンル別対応内容の選択肢（修理・緊急対応で異なる）
-const ACTION_TAKEN_OPTIONS = {
-  repair: [
-    { value: 'replaced',     label: '部品交換' },
-    { value: 'temp_fix',     label: '応急処置済み（要経過観察）' },
-    { value: 'reported',     label: '専門業者へ手配済み' },
-    { value: 'other',        label: 'その他' },
-  ],
-  emergency: [
-    { value: 'first_aid',    label: '応急処置済み' },
-    { value: 'specialist',   label: '専門業者へ連絡済み' },
-    { value: 'authorities',  label: '警察・消防へ通報済み' },
-    { value: 'other',        label: 'その他' },
-  ],
-};
 
 // ── ジャンル別定型文 ─────────────────────────────────
 const TEMPLATE_TEXTS = {
@@ -136,31 +39,24 @@ const TEMPLATE_TEXTS = {
 // ── タスク初期値ファクトリー ──────────────────────────
 let _taskSeq = 0;
 const createTask = () => ({
-  _id:             `task_${Date.now()}_${++_taskSeq}`,
-  genre:           'cleaning',
-  // 担当場所
-  targetPlaceKey:  '',   // selectの選択値
-  targetPlace:     '',   // 確定テキスト（選択ラベル or 自由入力）
-  // 作業内容
-  taskDetailKey:   '',
-  taskDetail:      '',
-  // 症状（任意）
-  symptomKey:      '',
-  symptom:         '',
-  // 対応内容（任意）
-  actionTakenKey:  '',
-  actionTaken:     '',
+  _id:          `task_${Date.now()}_${++_taskSeq}`,
+  genre:        'cleaning',
+  genreLabel:   '清掃',  // プレビュー表示用ラベル
+  // ジャンル別の動的フィールド（スキーマ駆動）
+  // select: field.key+'_key' に選択値、field.key にテキスト値を格納
+  // textarea/text: field.key に直接テキスト値を格納
+  customFields: {},
   // 評価
-  hasProblem:      false,
+  hasProblem:   false,
   // 報告内容（定型文自動挿入対象）
-  findings:        '',
+  findings:     '',
   // 備考
-  showMemo:        false,
-  memo:            '',
+  showMemo:     false,
+  memo:         '',
   // 写真
-  photos:          [],
+  photos:       [],
   // バリデーション
-  fieldErrors:     {},
+  fieldErrors:  {},
 });
 
 // ══════════════════════════════════════════════════════
@@ -169,8 +65,13 @@ const createTask = () => ({
 const ReporterDashboard = () => {
   const { logout, user } = useAuth();
   const [showEmergency,      setShowEmergency]      = useState(false);
-  // ユーザーが追加したカスタムジャンル（セッション中のみ保持）
-  const [customGenres, setCustomGenres] = useState([]);
+  // ユーザーが追加したカスタムジャンル（localStorage に永続化）
+  const [customGenres, setCustomGenres] = useState(() => {
+    try {
+      const saved = localStorage.getItem('re_report_custom_genres');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [showPreview,        setShowPreview]        = useState(false);
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(() => {
     const raw = localStorage.getItem('re_report_autosave');
@@ -201,10 +102,6 @@ const ReporterDashboard = () => {
     departmentName: '',
     coWorkers:      [],   // 選択した profile.id の配列
     isOnSchedule:   true,
-    // 「その他（新規追加）」選択時の自由入力値
-    newAreaName:       '',
-    newLocationName:   '',
-    newDepartmentName: '',
     // 遅延理由（全体の進捗が「遅延あり」の場合のみ使用）
     delayReason: '',
   });
@@ -224,6 +121,219 @@ const ReporterDashboard = () => {
   // ── バリデーションエラー ─────────────────────────
   const [validationError, setValidationError] = useState('');
 
+  // ── スキーマフィールドの「その他」入力履歴（セッション中に記憶）──
+  // { [field.key]: ['入力済みテキスト', ...] }
+  const [localFieldOptions, setLocalFieldOptions] = useState({});
+
+  // 入力済みの「その他」テキストをローカル履歴に追加
+  const rememberFieldOption = (fieldKey, text) => {
+    if (!text?.trim()) return;
+    setLocalFieldOptions(prev => {
+      const existing = prev[fieldKey] ?? [];
+      if (existing.includes(text.trim())) return prev;
+      return { ...prev, [fieldKey]: [...existing.slice(-4), text.trim()] }; // 最大5件保持
+    });
+  };
+
+  // ── 担当場所（現場）の新規入力履歴（セッション中に記憶・再選択可能）────
+  // { id: string, name: string, area: string | null }[]
+  const [localNewLocations, setLocalNewLocations] = useState([]);
+
+  // ── セッション中に追加したエリア（DB には存在しない）──
+  // { name: string }[]
+  const [localNewAreas, setLocalNewAreas] = useState([]);
+
+  // ── エリア追加 ─────────────────────────────────────
+  const handleAddArea = () => {
+    const name = window.prompt('新しいエリア名を入力してください');
+    if (!name?.trim()) return;
+    const trimmed = name.trim();
+    setLocalNewAreas(prev => prev.some(a => a.name === trimmed) ? prev : [...prev, { name: trimmed }]);
+    setCommonData(prev => ({
+      ...prev,
+      selectedArea: trimmed,
+      locationId: '', locationName: '',
+      departmentId: '', departmentName: '',
+    }));
+  };
+
+  // ── エリア編集（セッション追加分のみ） ────────────────
+  const handleEditArea = () => {
+    const newName = window.prompt('エリア名を変更してください', commonData.selectedArea);
+    if (!newName?.trim() || newName.trim() === commonData.selectedArea) return;
+    const trimmed = newName.trim();
+    setLocalNewAreas(prev => prev.map(a => a.name === commonData.selectedArea ? { name: trimmed } : a));
+    setCommonData(prev => ({ ...prev, selectedArea: trimmed }));
+  };
+
+  // ── 現場追加 ──────────────────────────────────────
+  const handleAddLocation = () => {
+    if (!commonData.selectedArea) return;
+    const name = window.prompt('新しい現場名を入力してください');
+    if (!name?.trim()) return;
+    const trimmed = name.trim();
+    const existing = localNewLocations.find(l => l.name === trimmed && l.area === commonData.selectedArea);
+    if (existing) {
+      setCommonData(prev => ({ ...prev, locationId: existing.id, locationName: existing.name }));
+      return;
+    }
+    const newId = `local_loc_${Date.now()}`;
+    setLocalNewLocations(prev => [...prev, { id: newId, name: trimmed, area: commonData.selectedArea }]);
+    setCommonData(prev => ({ ...prev, locationId: newId, locationName: trimmed }));
+  };
+
+  // ── 現場編集（セッション追加分のみ） ─────────────────
+  const handleEditLocation = () => {
+    if (!commonData.locationId?.startsWith('local_loc_')) return;
+    const newName = window.prompt('現場名を変更してください', commonData.locationName);
+    if (!newName?.trim() || newName.trim() === commonData.locationName) return;
+    const trimmed = newName.trim();
+    setLocalNewLocations(prev => prev.map(l => l.id === commonData.locationId ? { ...l, name: trimmed } : l));
+    setCommonData(prev => ({ ...prev, locationName: trimmed }));
+  };
+
+  // ── 案件名追加（即時 DB INSERT）──────────────────────
+  const handleAddDept = async () => {
+    const name = window.prompt('新しい案件名を入力してください');
+    if (!name?.trim()) return;
+    const trimmed = name.trim();
+    const currentArea = commonData.selectedArea || null;
+
+    // ① ローカルキャッシュ（departments state）で重複チェック
+    const existingInDB = departments.find(d =>
+      d.name.trim().toLowerCase() === trimmed.toLowerCase()
+      && (!currentArea || !d.area || d.area === currentArea)
+    );
+    if (existingInDB) {
+      setCommonData(prev => ({ ...prev, departmentId: existingInDB.id, departmentName: existingInDB.name }));
+      return;
+    }
+
+    // ② DB に重複チェック（unique 制約エラーを防ぐ）
+    const { data: dupRows } = await supabase
+      .from('departments').select('id, name').ilike('name', trimmed).limit(1);
+    if (dupRows?.length > 0) {
+      const dup = dupRows[0];
+      setDepartments(prev =>
+        prev.some(d => d.id === dup.id) ? prev : [...prev, { id: dup.id, name: dup.name, area: currentArea }]
+      );
+      setCommonData(prev => ({ ...prev, departmentId: dup.id, departmentName: dup.name }));
+      return;
+    }
+
+    // ③ 新規 INSERT（area も保存） → departments state に追加 → departmentId をセット
+    const { data: newDept, error } = await supabase
+      .from('departments').insert({ name: trimmed, area: currentArea }).select('id, name').single();
+    if (error) { alert('案件名の追加に失敗しました: ' + error.message); return; }
+    // 新エントリを変数に確定させてから両 state を更新（React 18 バッチ）
+    const newEntry = { id: newDept.id, name: newDept.name, area: currentArea };
+    setDepartments(prev => [...prev, newEntry]);
+    setCommonData(prev => ({ ...prev, departmentId: newEntry.id, departmentName: newEntry.name }));
+  };
+
+  // ── 案件名編集（DB UPDATE）───────────────────────────
+  const handleEditDept = async () => {
+    // departments state に存在するエントリのみ編集可（MOCK 除外）
+    if (!commonData.departmentId || !departments.find(d => d.id === commonData.departmentId)) return;
+    const newName = window.prompt('案件名を変更してください', commonData.departmentName);
+    if (!newName?.trim() || newName.trim() === commonData.departmentName) return;
+    const trimmed = newName.trim();
+    const { error } = await supabase
+      .from('departments').update({ name: trimmed }).eq('id', commonData.departmentId);
+    if (error) { alert('更新に失敗しました: ' + error.message); return; }
+    setDepartments(prev => prev.map(d => d.id === commonData.departmentId ? { ...d, name: trimmed } : d));
+    setCommonData(prev => ({ ...prev, departmentName: trimmed }));
+  };
+
+  // ── 案件名削除（DB DELETE）─────────────────────────
+  const handleDeleteDept = async () => {
+    if (!commonData.departmentId || !departments.find(d => d.id === commonData.departmentId)) return;
+    if (!window.confirm(`「${commonData.departmentName}」を削除しますか？`)) return;
+    const { error } = await supabase
+      .from('departments').delete().eq('id', commonData.departmentId);
+    if (error) { alert('削除に失敗しました: ' + error.message); return; }
+    setDepartments(prev => prev.filter(d => d.id !== commonData.departmentId));
+    setCommonData(prev => ({ ...prev, departmentId: '', departmentName: '' }));
+  };
+
+  // ── 担当場所マスタ（target_places テーブル）────────
+  // { id: string, name: string }[]
+  const [targetPlaces, setTargetPlaces] = useState([]);
+
+  // ── 担当場所を追加（DB INSERT）─────────────────────
+  const handleAddTargetPlace = async (taskIdx) => {
+    const name = window.prompt('新しい担当場所を入力してください');
+    if (!name?.trim()) return;
+    const trimmed = name.trim();
+    // 重複チェック（DB + ローカルキャッシュ）
+    const existing = targetPlaces.find(
+      p => p.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) {
+      // 既存エントリを選択（functional update で stale 回避）
+      setTasks(prev => prev.map((t, i) => {
+        if (i !== taskIdx) return t;
+        return {
+          ...t,
+          customFields: {
+            ...(t.customFields ?? {}),
+            target_place_key: existing.id,
+            target_place:     existing.name,
+          },
+        };
+      }));
+      return;
+    }
+    const { data: newPlace, error } = await supabase
+      .from('target_places').insert({ name: trimmed }).select('id, name').single();
+    if (error) { alert('追加に失敗しました: ' + error.message); return; }
+    // setTargetPlaces と setTasks を同一レンダーに収める（React 18 バッチ）
+    // setTasks は functional update を使い、await 後の stale closure を防ぐ
+    setTargetPlaces(prev => [...prev, newPlace].sort((a, b) => a.name.localeCompare(b.name, 'ja')));
+    setTasks(prev => prev.map((t, i) => {
+      if (i !== taskIdx) return t;
+      return {
+        ...t,
+        customFields: {
+          ...(t.customFields ?? {}),
+          target_place_key: newPlace.id,
+          target_place:     newPlace.name,
+        },
+      };
+    }));
+  };
+
+  // ── 担当場所を編集（DB UPDATE）─────────────────────
+  const handleEditTargetPlace = async (placeId, currentName) => {
+    const newName = window.prompt('担当場所名を変更してください', currentName);
+    if (!newName?.trim() || newName.trim() === currentName) return;
+    const trimmed = newName.trim();
+    const { error } = await supabase
+      .from('target_places').update({ name: trimmed }).eq('id', placeId);
+    if (error) { alert('更新に失敗しました: ' + error.message); return; }
+    setTargetPlaces(prev => prev.map(p => p.id === placeId ? { ...p, name: trimmed } : p));
+    // この場所を選択中の全タスクも同時に更新
+    setTasks(prev => prev.map(t =>
+      t.customFields?.target_place_key === placeId
+        ? { ...t, customFields: { ...t.customFields, target_place: trimmed } }
+        : t
+    ));
+  };
+
+  // ── 担当場所を削除（DB DELETE）─────────────────────
+  const handleDeleteTargetPlace = async (placeId, currentName) => {
+    if (!window.confirm(`「${currentName}」を担当場所リストから削除しますか？`)) return;
+    const { error } = await supabase.from('target_places').delete().eq('id', placeId);
+    if (error) { alert('削除に失敗しました: ' + error.message); return; }
+    setTargetPlaces(prev => prev.filter(p => p.id !== placeId));
+    // この場所を選択中の全タスクをリセット
+    setTasks(prev => prev.map(t =>
+      t.customFields?.target_place_key === placeId
+        ? { ...t, customFields: { ...t.customFields, target_place_key: '', target_place: '' } }
+        : t
+    ));
+  };
+
   // ── マスタデータ取得 ──────────────────────────────
   useEffect(() => {
     supabase.from('locations').select('id, name, area').order('area')
@@ -238,6 +348,18 @@ const ReporterDashboard = () => {
       .then(({ data, error }) => {
         if (error) { console.error('[Supabase] departments 取得失敗:', error.message); return; }
         if (data?.length > 0) setDepartments(data);
+      });
+  }, []);
+
+  useEffect(() => {
+    supabase.from('target_places').select('id, name').order('name')
+      .then(({ data, error }) => {
+        if (error) {
+          // テーブル未作成の場合は警告のみ（アプリは動作継続）
+          console.warn('[Supabase] target_places 取得失敗:', error.message);
+          return;
+        }
+        setTargetPlaces(data ?? []);
       });
   }, []);
 
@@ -260,10 +382,18 @@ const ReporterDashboard = () => {
     });
   }, []);
 
+  // ── カスタムジャンルを localStorage に永続化 ─────────
+  useEffect(() => {
+    localStorage.setItem('re_report_custom_genres', JSON.stringify(customGenres));
+  }, [customGenres]);
+
   // ── 自動保存（2秒デバウンス） ──────────────────────
   useEffect(() => {
     const hasInput = commonData.date
-      || tasks.some(t => t.targetPlace || t.taskDetail || t.findings);
+      || tasks.some(t => {
+           const anyCustom = Object.values(t.customFields ?? {}).some(v => v?.trim?.());
+           return anyCustom || t.findings;
+         });
     const handler = setTimeout(() => {
       if (hasInput) {
         localStorage.setItem('re_report_autosave', JSON.stringify({
@@ -298,25 +428,20 @@ const ReporterDashboard = () => {
   const updateTask = (idx, partial) =>
     setTasks(prev => prev.map((t, i) => i === idx ? { ...t, ...partial } : t));
 
-  // セレクト型フィールド更新（ラベルをテキストとして保存）
-  const updateSelectField = (idx, keyField, textField, optionsList, value) => {
-    const label = value !== 'other'
-      ? (optionsList.find(o => o.value === value)?.label ?? '')
-      : '';
-    updateTask(idx, {
-      [keyField]: value,
-      [textField]: value !== 'other' ? label : '',
-      fieldErrors: { ...tasks[idx].fieldErrors, [textField]: '' },
-    });
-  };
-
   const handleGenreChange = (idx, genreId) => {
+    // GENRES + カスタムジャンルからラベルを解決
+    const label = [...GENRES, ...customGenres].find(g => g.id === genreId)?.label ?? genreId;
+    // 担当場所（target_place）は全ジャンル共通フィールドなので引き継ぐ
+    const prevCf = tasks[idx]?.customFields ?? {};
+    const preservedPlace = {};
+    if (prevCf.target_place_key !== undefined) preservedPlace.target_place_key = prevCf.target_place_key;
+    if (prevCf.target_place     !== undefined) preservedPlace.target_place     = prevCf.target_place;
     updateTask(idx, {
-      genre:         genreId,
-      taskDetailKey: '',
-      taskDetail:    '',
-      fieldErrors:   {},
-      showMemo:      false,
+      genre:        genreId,
+      genreLabel:   label,
+      customFields: preservedPlace,   // 担当場所のみ引き継ぎ、それ以外はリセット
+      fieldErrors:  {},
+      showMemo:     false,
       // 緊急対応は常に has_problem=true として扱う
       ...(genreId === 'emergency' ? { hasProblem: true } : {}),
     });
@@ -375,22 +500,35 @@ const ReporterDashboard = () => {
     for (let idx = 0; idx < tasks.length; idx++) {
       const task   = tasks[idx];
       const prefix = tasks.length > 1 ? `作業${idx + 1}：` : '';
+      const schema = GENRE_FORM_SCHEMA[task.genre] ?? GENRE_FORM_SCHEMA._fallback;
+      const cf     = task.customFields ?? {};
+
+      // ① 「その他」が選択されているフィールドで自由入力が空 → エラー
+      for (const field of schema) {
+        if (field.type !== 'select' || !field.allowOther) continue;
+        if (cf[field.key + '_key'] === 'other' && !cf[field.key]?.trim()) {
+          setValidationError(
+            `${prefix}「${field.label}」で「その他」が選択されています。詳細を入力してください。`
+          );
+          return false;
+        }
+      }
+
+      // ② 必須フィールド（optional でないもの）のうち最低1つは入力必須
+      const requiredFields = schema.filter(f => !f.optional);
+      const anyRequiredFilled = requiredFields.some(f => cf[f.key]?.trim());
 
       if (task.genre === 'emergency') {
-        // 緊急対応：担当場所・状況・症状・対応内容のいずれか1つがあればOK
-        const anyFilled = task.targetPlace.trim() || task.taskDetail.trim()
-                       || task.symptom.trim()     || task.actionTaken.trim();
-        if (!anyFilled) {
+        if (!anyRequiredFilled) {
           setValidationError(`${prefix}担当場所・状況・症状・対応内容のいずれかを入力してください。`);
           return false;
         }
-        // 緊急対応は報告内容が必須
         if (!task.findings.trim()) {
           setValidationError(`${prefix}緊急対応の報告内容は必須です。詳細を記入してください。`);
           return false;
         }
       } else {
-        if (!task.targetPlace.trim() && !task.taskDetail.trim()) {
+        if (!anyRequiredFilled) {
           setValidationError(`${prefix}担当場所または作業内容を入力してください。`);
           return false;
         }
@@ -414,36 +552,17 @@ const ReporterDashboard = () => {
     let finalLocationId   = commonData.locationId   || null;
     let finalDepartmentId = commonData.departmentId || null;
 
-    if (commonData.locationId === 'other') {
-      const locName  = commonData.newLocationName.trim();
-      const areaName = commonData.selectedArea === 'other'
-        ? commonData.newAreaName.trim()
-        : commonData.selectedArea;
+    const isNewLoc = commonData.locationId?.startsWith('local_loc_');
+    if (isNewLoc) {
+      const locName = commonData.locationName.trim();
       if (!locName) { alert('新しい現場名を入力してください。'); return; }
       const { data: newLoc, error: locErr } = await supabase
-        .from('locations').insert({ name: locName, area: areaName }).select('id').single();
+        .from('locations').insert({ name: locName, area: commonData.selectedArea || null }).select('id').single();
       if (locErr) { alert('現場の追加に失敗しました: ' + locErr.message); return; }
       finalLocationId = newLoc.id;
-      // ローカルリストに反映して次回から選択肢に表示
-      setLocations(prev => [...prev, { id: newLoc.id, name: locName, area: areaName }]);
-    }
-
-    if (commonData.departmentId === 'other') {
-      const deptName = commonData.newDepartmentName.trim();
-      if (!deptName) { alert('新しい案件名を入力してください。'); return; }
-      const { data: newDept, error: deptErr } = await supabase
-        .from('departments').insert({ name: deptName }).select('id').single();
-      if (deptErr) { alert('案件名の追加に失敗しました: ' + deptErr.message); return; }
-      finalDepartmentId = newDept.id;
-      // エリア情報を含めて追加し、選択状態を即時反映
-      const areaForNewDept = commonData.selectedArea !== 'other' ? commonData.selectedArea : null;
-      setDepartments(prev => [...prev, { id: newDept.id, name: deptName, area: areaForNewDept }]);
-      setCommonData(prev => ({
-        ...prev,
-        departmentId:      newDept.id,
-        departmentName:    deptName,
-        newDepartmentName: '',
-      }));
+      setLocations(prev => [...prev, { id: newLoc.id, name: locName, area: commonData.selectedArea || null }]);
+      setLocalNewLocations(prev => prev.map(l => l.name === locName ? { ...l, id: newLoc.id } : l));
+      setCommonData(prev => ({ ...prev, locationId: newLoc.id, locationName: locName }));
     }
 
     // ① reports（親）を1件 INSERT
@@ -476,12 +595,13 @@ const ReporterDashboard = () => {
       const task        = tasks[tIdx];
       const taskLabel   = tasks.length > 1 ? `作業${tIdx + 1}` : '作業';
 
-      // ── ② report_tasks INSERT（V3: ジャンル固有項目はcustom_dataにまとめる）
-      const customData = {};
-      if (task.targetPlace.trim()) customData.target_place = task.targetPlace.trim();
-      if (task.taskDetail.trim())  customData.task_detail  = task.taskDetail.trim();
-      if (task.symptom.trim())     customData.symptom      = task.symptom.trim();
-      if (task.actionTaken.trim()) customData.action_taken = task.actionTaken.trim();
+      // ── ② report_tasks INSERT（スキーマ駆動: customFields から custom_data を自動生成）
+      // _key サフィックスのエントリ（select 選択値）と空値は除外し、テキスト値のみ保存
+      const customData = Object.fromEntries(
+        Object.entries(task.customFields ?? {})
+          .filter(([k, v]) => !k.endsWith('_key') && v?.trim?.())
+          .map(([k, v]) => [k, v.trim()])
+      );
 
       const { data: taskRow, error: taskError } = await supabase
         .from('report_tasks')
@@ -569,32 +689,167 @@ const ReporterDashboard = () => {
     );
   }
 
+  // ── スキーマフィールド1件描画 ──────────────────────
+  const renderSchemaField = (field, task, idx) => {
+    const cf       = task.customFields ?? {};
+    const keyField = field.key + '_key';   // select の選択値
+    const txtField = field.key;            // 保存するテキスト値
+    const keyValue = cf[keyField] ?? '';
+    const isOther  = keyValue === 'other';
+
+    const setCustom = (patch) =>
+      updateTask(idx, { customFields: { ...cf, ...patch } });
+
+    if (field.type === 'select') {
+      const historyOpts  = localFieldOptions[field.key] ?? [];
+      // target_place フィールドのみ DB マスタを使う
+      const isTargetPlace = field.key === 'target_place';
+      const isDbEntry     = isTargetPlace && targetPlaces.some(p => p.id === keyValue);
+
+      return (
+        <div key={field.key} className="form-section">
+          <label>
+            {field.label}
+            {field.optional && <span className="optional-badge" style={{ marginLeft: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>任意</span>}
+          </label>
+          <div className={isTargetPlace ? 'select-with-actions' : undefined}>
+            <select
+              className="input-field"
+              value={keyValue}
+              onChange={e => {
+                const val = e.target.value;
+                // ローカル履歴のオプション（value = ラベル文字列）
+                if (historyOpts.includes(val)) {
+                  setCustom({ [keyField]: val, [txtField]: val });
+                  return;
+                }
+                // DB マスタの担当場所
+                if (isTargetPlace) {
+                  const dbPlace = targetPlaces.find(p => p.id === val);
+                  if (dbPlace) {
+                    setCustom({ [keyField]: val, [txtField]: dbPlace.name });
+                    return;
+                  }
+                }
+                const label = val !== 'other'
+                  ? (field.options.find(o => o.value === val)?.label ?? '')
+                  : '';
+                setCustom({ [keyField]: val, [txtField]: val !== 'other' ? label : '' });
+              }}
+            >
+              <option value="">選択してください</option>
+              {field.options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+              {/* ── DB 登録済み担当場所 ── */}
+              {isTargetPlace && targetPlaces.length > 0 && (
+                <optgroup label="登録済み">
+                  {targetPlaces.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {/* ── 「その他」で入力した履歴を再選択肢として表示 ── */}
+              {historyOpts.length > 0 && (
+                <optgroup label="最近使用">
+                  {historyOpts.map(text => (
+                    <option key={text} value={text}>{text}</option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            {/* target_place のみ追加・編集・削除ボタンを表示 */}
+            {isTargetPlace && (
+              <>
+                <button type="button" className="btn-select-action" title="担当場所を追加"
+                  onClick={() => handleAddTargetPlace(idx)}>＋</button>
+                <button type="button" className="btn-select-action" title="名前を変更"
+                  disabled={!isDbEntry}
+                  onClick={() => handleEditTargetPlace(keyValue, cf[txtField])}>⚙</button>
+                <button type="button" className="btn-select-action btn-select-action--danger" title="削除"
+                  disabled={!isDbEntry}
+                  onClick={() => handleDeleteTargetPlace(keyValue, cf[txtField])}>🗑</button>
+              </>
+            )}
+          </div>
+          {isOther && (
+            <div style={{ marginTop: '8px' }}>
+              <div className="label-with-action" style={{ marginBottom: '6px' }}>
+                <span className="field-other-label">{field.otherLabel ?? '詳しく入力'}</span>
+                {field.allowVoice && (
+                  <VoiceInput onResult={text =>
+                    setCustom({ [txtField]: cf[txtField] ? `${cf[txtField]}\n${text}` : text })
+                  } />
+                )}
+              </div>
+              {(field.otherType ?? 'text') === 'textarea' ? (
+                <textarea
+                  className="input-field genre-field-area"
+                  value={cf[txtField] ?? ''}
+                  onChange={e => setCustom({ [txtField]: e.target.value })}
+                  onBlur={e => rememberFieldOption(field.key, e.target.value)}
+                  placeholder={field.otherPlaceholder ?? '詳しく入力してください...'}
+                  rows={2}
+                  data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
+                />
+              ) : (
+                <input
+                  type="text"
+                  className="input-field"
+                  value={cf[txtField] ?? ''}
+                  onChange={e => setCustom({ [txtField]: e.target.value })}
+                  onBlur={e => rememberFieldOption(field.key, e.target.value)}
+                  placeholder={field.otherPlaceholder ?? '詳しく入力してください...'}
+                  data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // type: 'textarea' または 'text'
+    return (
+      <div key={field.key} className="form-section">
+        <div className="label-with-action">
+          <label>{field.label}</label>
+          {field.allowVoice && (
+            <VoiceInput onResult={text =>
+              setCustom({ [txtField]: cf[txtField] ? `${cf[txtField]}\n${text}` : text })
+            } />
+          )}
+        </div>
+        {field.type === 'textarea' ? (
+          <textarea
+            className="input-field genre-field-area"
+            value={cf[txtField] ?? ''}
+            onChange={e => setCustom({ [txtField]: e.target.value })}
+            placeholder={field.placeholder ?? '入力してください...'}
+            rows={2}
+            data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
+          />
+        ) : (
+          <input
+            type="text"
+            className="input-field"
+            value={cf[txtField] ?? ''}
+            onChange={e => setCustom({ [txtField]: e.target.value })}
+            placeholder={field.placeholder ?? '入力してください...'}
+            data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
+          />
+        )}
+      </div>
+    );
+  };
+
   // ── タスクブロック描画 ─────────────────────────────
   const renderTaskBlock = (task, idx) => {
-    const taskDetailOpts     = TASK_DETAIL_OPTIONS[task.genre]     ?? [{ value: 'other', label: 'その他' }];
-    const symptomOpts        = SYMPTOM_OPTIONS[task.genre]         ?? [{ value: 'other', label: 'その他' }];
-    const actionTakenOpts    = ACTION_TAKEN_OPTIONS[task.genre]    ?? [{ value: 'other', label: 'その他' }];
-    const isTargetPlaceOther = task.targetPlaceKey === 'other';
-    const isTaskDetailOther  = task.taskDetailKey  === 'other';
-    const isSymptomOther     = task.symptomKey     === 'other';
-    const isActionTakenOther = task.actionTakenKey === 'other';
+    // ジャンルに対応するスキーマ（未知のカスタムジャンルは _fallback を使用）
+    const schema = GENRE_FORM_SCHEMA[task.genre] ?? GENRE_FORM_SCHEMA._fallback;
 
-    // ジャンルごとの表示制御
-    const showSymptom     = ['inspection', 'repair', 'emergency'].includes(task.genre);
-    const showActionTaken = ['repair', 'emergency'].includes(task.genre);
     // 点検・巡回は「異常の有無」、それ以外は「問題の有無」
-    const hasProblemLabel = ['inspection', 'patrol'].includes(task.genre) ? '異常の有無' : '問題の有無';
-    const noLabel         = ['inspection', 'patrol'].includes(task.genre) ? '異常無し' : '問題無し';
-    const yesLabel        = ['inspection', 'patrol'].includes(task.genre) ? '異常あり' : '問題あり';
-
-    // ジャンルごとの作業詳細ラベル
-    const taskDetailLabel = {
-      cleaning:   '清掃内容',
-      inspection: '点検項目',
-      repair:     '対象箇所',
-      patrol:     '巡回箇所',
-      emergency:  '状況・対応内容',
-    }[task.genre] ?? '作業内容';
+    const hpCfg = HAS_PROBLEM_CONFIG[task.genre] ?? HAS_PROBLEM_CONFIG._default;
 
     return (
       <div key={task._id} className="task-block">
@@ -639,158 +894,17 @@ const ReporterDashboard = () => {
           </div>
         </div>
 
-        {/* 担当場所（全ジャンル共通） */}
-        <div className="form-section">
-          <label>担当場所</label>
-          <select
-            className="input-field"
-            value={task.targetPlaceKey}
-            onChange={e =>
-              updateSelectField(idx, 'targetPlaceKey', 'targetPlace', TARGET_PLACE_OPTIONS, e.target.value)
-            }
-          >
-            <option value="">選択してください</option>
-            {TARGET_PLACE_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          {isTargetPlaceOther && (
-            <div style={{ marginTop: '8px' }}>
-              <div className="label-with-action" style={{ marginBottom: '6px' }}>
-                <span className="field-other-label">場所を詳しく入力</span>
-                <VoiceInput onResult={text => updateTask(idx, {
-                  targetPlace: task.targetPlace ? `${task.targetPlace}${text}` : text,
-                })} />
-              </div>
-              <input
-                type="text"
-                className="input-field"
-                value={task.targetPlace}
-                onChange={e => updateTask(idx, { targetPlace: e.target.value })}
-                placeholder="場所を具体的に入力してください..."
-                data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* ジャンル別：作業詳細フィールド */}
-        <div className="form-section">
-          <label>{taskDetailLabel}</label>
-          <select
-            className="input-field"
-            value={task.taskDetailKey}
-            onChange={e =>
-              updateSelectField(idx, 'taskDetailKey', 'taskDetail', taskDetailOpts, e.target.value)
-            }
-          >
-            <option value="">選択してください</option>
-            {taskDetailOpts.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          {isTaskDetailOther && (
-            <div style={{ marginTop: '8px' }}>
-              <div className="label-with-action" style={{ marginBottom: '6px' }}>
-                <span className="field-other-label">詳しく入力</span>
-                <VoiceInput onResult={text => updateTask(idx, {
-                  taskDetail: task.taskDetail ? `${task.taskDetail}\n${text}` : text,
-                })} />
-              </div>
-              <textarea
-                className="input-field genre-field-area"
-                value={task.taskDetail}
-                onChange={e => updateTask(idx, { taskDetail: e.target.value })}
-                placeholder={`${taskDetailLabel}を具体的に入力してください...`}
-                rows={2}
-                data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* 症状（点検・修理・緊急対応のみ） */}
-        {showSymptom && (
-          <div className="form-section">
-            <label>症状</label>
-            <select
-              className="input-field"
-              value={task.symptomKey}
-              onChange={e =>
-                updateSelectField(idx, 'symptomKey', 'symptom', symptomOpts, e.target.value)
-              }
-            >
-              <option value="">選択してください</option>
-              {symptomOpts.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            {isSymptomOther && (
-              <div style={{ marginTop: '8px' }}>
-                <div className="label-with-action" style={{ marginBottom: '6px' }}>
-                  <span className="field-other-label">症状を詳しく入力</span>
-                  <VoiceInput onResult={text => updateTask(idx, {
-                    symptom: task.symptom ? `${task.symptom}${text}` : text,
-                  })} />
-                </div>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={task.symptom}
-                  onChange={e => updateTask(idx, { symptom: e.target.value })}
-                  placeholder="症状を具体的に入力してください..."
-                  data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 対応内容（修理・緊急対応のみ） */}
-        {showActionTaken && (
-          <div className="form-section">
-            <label>対応内容</label>
-            <select
-              className="input-field"
-              value={task.actionTakenKey}
-              onChange={e =>
-                updateSelectField(idx, 'actionTakenKey', 'actionTaken', actionTakenOpts, e.target.value)
-              }
-            >
-              <option value="">選択してください</option>
-              {actionTakenOpts.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            {isActionTakenOther && (
-              <div style={{ marginTop: '8px' }}>
-                <div className="label-with-action" style={{ marginBottom: '6px' }}>
-                  <span className="field-other-label">対応内容を詳しく入力</span>
-                  <VoiceInput onResult={text => updateTask(idx, {
-                    actionTaken: task.actionTaken ? `${task.actionTaken}\n${text}` : text,
-                  })} />
-                </div>
-                <textarea
-                  className="input-field genre-field-area"
-                  value={task.actionTaken}
-                  onChange={e => updateTask(idx, { actionTaken: e.target.value })}
-                  placeholder="対応内容を具体的に入力してください..."
-                  rows={2}
-                  data-gramm="false" autoComplete="off" data-1p-ignore="true" spellCheck={false}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        {/* スキーマ定義に基づくジャンル別フィールド */}
+        {schema.map(field => renderSchemaField(field, task, idx))}
 
         {/* 問題の有無 / 異常の有無（緊急対応は非表示・強制true） */}
         {task.genre !== 'emergency' && (
           <div className="form-section">
-            <label>{hasProblemLabel}</label>
+            <label>{hpCfg.label}</label>
             <div className="has-issue-seg">
               {[
-                { value: false, label: noLabel,  colorClass: 'no' },
-                { value: true,  label: yesLabel, colorClass: 'yes' },
+                { value: false, label: hpCfg.noLabel,  colorClass: 'no' },
+                { value: true,  label: hpCfg.yesLabel, colorClass: 'yes' },
               ].map(opt => (
                 <button
                   key={String(opt.value)}
@@ -976,85 +1090,70 @@ const ReporterDashboard = () => {
           <div className="form-row">
             <div className="form-section flex-1">
               <label>エリア</label>
-              <select
-                className="input-field"
-                value={commonData.selectedArea}
-                onChange={e => setCommonData(prev => ({
-                  ...prev,
-                  selectedArea:    e.target.value,
-                  locationId:      '',
-                  locationName:    '',
-                  newAreaName:     '',
-                  newLocationName: '',
-                  // エリアが変わったら案件選択もリセット
-                  departmentId:    '',
-                  departmentName:  '',
-                }))}
-              >
-                <option value="">エリアを選択してください</option>
-                {[...new Set(locations.map(l => l.area))].map(area => (
-                  <option key={area} value={area}>{area}</option>
-                ))}
-                <option value="other">その他（新規追加）</option>
-              </select>
-              {/* 新規エリア名入力 */}
-              {commonData.selectedArea === 'other' && (
-                <input
-                  type="text"
+              <div className="select-with-actions">
+                <select
                   className="input-field"
-                  style={{ marginTop: '8px' }}
-                  value={commonData.newAreaName}
-                  onChange={e => setCommonData(prev => ({ ...prev, newAreaName: e.target.value }))}
-                  placeholder="新しいエリア名を入力..."
-                  autoComplete="off" data-1p-ignore="true"
-                />
-              )}
+                  value={commonData.selectedArea}
+                  onChange={e => setCommonData(prev => ({
+                    ...prev,
+                    selectedArea:   e.target.value,
+                    locationId:     '',
+                    locationName:   '',
+                    departmentId:   '',
+                    departmentName: '',
+                  }))}
+                >
+                  <option value="">エリアを選択してください</option>
+                  {[...new Set([
+                    ...locations.map(l => l.area).filter(Boolean),
+                    ...localNewAreas.map(a => a.name),
+                  ])].map(area => (
+                    <option key={area} value={area}>{area}</option>
+                  ))}
+                </select>
+                <button type="button" className="btn-select-action" title="エリアを追加" onClick={handleAddArea}>＋</button>
+                <button type="button" className="btn-select-action" title="エリアを編集"
+                  disabled={!commonData.selectedArea || !localNewAreas.some(a => a.name === commonData.selectedArea)}
+                  onClick={handleEditArea}>⚙</button>
+              </div>
             </div>
             <div className="form-section flex-1">
               <label>現場</label>
-              <select
-                className="input-field"
-                value={commonData.locationId}
-                disabled={!commonData.selectedArea}
-                onChange={e => {
-                  if (e.target.value === 'other') {
-                    setCommonData(prev => ({
-                      ...prev, locationId: 'other', locationName: '', newLocationName: '',
-                    }));
-                  } else {
-                    const loc = locations.find(l => l.id === e.target.value);
-                    setCommonData(prev => ({
-                      ...prev,
-                      locationId:   e.target.value,
-                      locationName: loc?.name ?? '',
-                    }));
-                  }
-                }}
-              >
-                <option value="">
-                  {commonData.selectedArea ? '現場を選択してください' : '先にエリアを選択してください'}
-                </option>
-                {locations
-                  .filter(l => l.area === commonData.selectedArea)
-                  .map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                {commonData.selectedArea && (
-                  <option value="other">その他（新規追加）</option>
-                )}
-              </select>
-              {/* 新規現場名入力 */}
-              {commonData.locationId === 'other' && (
-                <input
-                  type="text"
+              <div className="select-with-actions">
+                <select
                   className="input-field"
-                  style={{ marginTop: '8px' }}
-                  value={commonData.newLocationName}
-                  onChange={e => setCommonData(prev => ({
-                    ...prev, newLocationName: e.target.value, locationName: e.target.value,
-                  }))}
-                  placeholder="新しい現場名を入力..."
-                  autoComplete="off" data-1p-ignore="true"
-                />
-              )}
+                  value={commonData.locationId}
+                  disabled={!commonData.selectedArea}
+                  onChange={e => {
+                    const localLoc = localNewLocations.find(l => l.id === e.target.value);
+                    if (localLoc) {
+                      setCommonData(prev => ({ ...prev, locationId: e.target.value, locationName: localLoc.name }));
+                    } else {
+                      const loc = locations.find(l => l.id === e.target.value);
+                      setCommonData(prev => ({ ...prev, locationId: e.target.value, locationName: loc?.name ?? '' }));
+                    }
+                  }}
+                >
+                  <option value="">
+                    {commonData.selectedArea ? '現場を選択してください' : '先にエリアを選択してください'}
+                  </option>
+                  {locations
+                    .filter(l => l.area === commonData.selectedArea)
+                    .map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {localNewLocations.filter(l => !l.area || l.area === commonData.selectedArea).length > 0 && (
+                    <optgroup label="最近追加">
+                      {localNewLocations
+                        .filter(l => !l.area || l.area === commonData.selectedArea)
+                        .map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </optgroup>
+                  )}
+                </select>
+                <button type="button" className="btn-select-action" title="現場を追加"
+                  disabled={!commonData.selectedArea} onClick={handleAddLocation}>＋</button>
+                <button type="button" className="btn-select-action" title="現場を編集"
+                  disabled={!commonData.locationId?.startsWith('local_loc_')}
+                  onClick={handleEditLocation}>⚙</button>
+              </div>
             </div>
           </div>
 
@@ -1089,65 +1188,37 @@ const ReporterDashboard = () => {
             )}
           </div>
 
-          {/* 部署 */}
+          {/* 案件名 */}
           <div className="form-section">
             <label>案件名</label>
-            <select
-              className="input-field"
-              value={commonData.departmentId}
-              onChange={e => {
-                if (e.target.value === 'other') {
-                  setCommonData(prev => ({
-                    ...prev, departmentId: 'other', departmentName: '', newDepartmentName: '',
-                  }));
-                } else {
-                  const dept = departments.find(d => d.id === e.target.value);
+            <div className="select-with-actions">
+              <select
+                className="input-field"
+                value={commonData.departmentId}
+                onChange={e => {
+                  const dept = departments.find(d => d.id === e.target.value)
+                    ?? MOCK_DEPARTMENTS.find(d => d.id === e.target.value);
                   setCommonData(prev => ({
                     ...prev,
                     departmentId:   e.target.value,
                     departmentName: dept?.name ?? '',
                   }));
+                }}
+              >
+                <option value="">選択してください</option>
+                {(departments.length > 0 ? departments : MOCK_DEPARTMENTS)
+                  .filter(d => !commonData.selectedArea || d.area === commonData.selectedArea || d.id === commonData.departmentId)
+                  .map(d => <option key={d.id} value={d.id}>{d.name}</option>)
                 }
-              }}
-            >
-              <option value="">選択してください</option>
-              {departments.length > 0
-                ? (() => {
-                    // エリア選択中は、そのエリアに紐づく案件のみ表示
-                    // (area カラムが空/未設定の案件は常に表示する)
-                    const filtered = commonData.selectedArea && commonData.selectedArea !== 'other'
-                      ? departments.filter(d => !d.area || d.area === commonData.selectedArea)
-                      : departments;
-                    return filtered.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ));
-                  })()
-                : (() => {
-                    // DB未設定時のフォールバック: MOCK_DEPARTMENTS もエリアで絞り込む
-                    const fallback = commonData.selectedArea && commonData.selectedArea !== 'other'
-                      ? MOCK_DEPARTMENTS.filter(d => !d.area || d.area === commonData.selectedArea)
-                      : MOCK_DEPARTMENTS;
-                    return fallback.map(d => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ));
-                  })()
-              }
-              <option value="other">その他（新規追加）</option>
-            </select>
-            {/* 新規部署名入力 */}
-            {commonData.departmentId === 'other' && (
-              <input
-                type="text"
-                className="input-field"
-                style={{ marginTop: '8px' }}
-                value={commonData.newDepartmentName}
-                onChange={e => setCommonData(prev => ({
-                  ...prev, newDepartmentName: e.target.value, departmentName: e.target.value,
-                }))}
-                placeholder="新しい案件名を入力..."
-                autoComplete="off" data-1p-ignore="true"
-              />
-            )}
+              </select>
+              <button type="button" className="btn-select-action" title="案件名を追加" onClick={handleAddDept}>＋</button>
+              <button type="button" className="btn-select-action" title="案件名を編集"
+                disabled={!departments.find(d => d.id === commonData.departmentId)}
+                onClick={handleEditDept}>⚙</button>
+              <button type="button" className="btn-select-action btn-select-action--danger" title="案件名を削除"
+                disabled={!departments.find(d => d.id === commonData.departmentId)}
+                onClick={handleDeleteDept}>🗑</button>
+            </div>
           </div>
 
           {/* 全体の進捗 */}

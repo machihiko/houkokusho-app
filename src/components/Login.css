@@ -53,6 +53,15 @@
 .theme-options {
   display: flex;
   gap: 8px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  /* スクロールバーを非表示にしてすっきり見せる */
+  scrollbar-width: none;
+}
+.theme-options::-webkit-scrollbar {
+  display: none;
 }
 
 .theme-btn {
@@ -81,12 +90,15 @@
   transition: all 0.2s;
 }
 
-.color-circle[data-color="default"] { background: #3b82f6; }
-.color-circle[data-color="red"] { background: #ef4444; }
-.color-circle[data-color="green"] { background: #10b981; }
-.color-circle[data-color="blue"] { background: #0ea5e9; }
-.color-circle[data-color="pink"] { background: #ec4899; }
-.color-circle[data-color="orange"] { background: #f97316; }
+.color-circle[data-color="default"]     { background: #3b82f6; }
+.color-circle[data-color="red"]         { background: #ef4444; }
+.color-circle[data-color="green"]       { background: #10b981; }
+.color-circle[data-color="blue"]        { background: #0ea5e9; }
+.color-circle[data-color="pink"]        { background: #ec4899; }
+.color-circle[data-color="orange"]      { background: #f97316; }
+.color-circle[data-color="pastel-pink"] { background: #e879a8; }
+.color-circle[data-color="dark"]        { background: #818cf8; border-color: #475569; }
+.color-circle[data-color="forest"]      { background: #15803d; }
 
 .login-card {
   width: 100%;
