@@ -161,6 +161,23 @@ const ExportPreviewPage = () => {
     return rows;
   }, [reports]);
 
+  // ── Excelドキュメントプレビュー用メタ情報 ────────────────
+  const previewMeta = useMemo(() => {
+    const dates   = reports.map(r => r.date).filter(Boolean).sort();
+    const oldest  = dates[0] ?? '―';
+    const newest  = dates[dates.length - 1] ?? '―';
+    const total   = reports.length;
+    const noIssue = reports.filter(r => r.hasIssue !== 'yes').length;
+    const hasIssueCnt = reports.filter(r => r.hasIssue === 'yes').length;
+    const delayed = reports.filter(r => r.hasDelay === 'yes').length;
+    const deptMap = reports.reduce((acc, r) => {
+      const dept = r.department ?? '不明';
+      acc[dept] = (acc[dept] ?? 0) + 1;
+      return acc;
+    }, {});
+    return { oldest, newest, total, noIssue, hasIssueCnt, delayed, deptMap };
+  }, [reports]);
+
   // ── チェックボックス操作 ──────────────────────────────────
   const toggleCol = (key) => setColChecked(prev => ({ ...prev, [key]: !prev[key] }));
   const toggleAll = (cat, on) =>
@@ -501,98 +518,130 @@ const ExportPreviewPage = () => {
           </div>
 
           <div className="ep-preview-scroll">
-            {activeCols.length === 0 ? (
-              <div className="ep-preview-empty">
-                左パネルで出力する列を1つ以上選択してください
+            {/* ── Excelドキュメント風プレビュー ── */}
+            <div className="ep-excel-doc">
+
+              {/* 行1: タイトルバー */}
+              <div className="ep-xls-row ep-xls-row--title">
+                <div className="ep-xls-title-cell">報　告　書　集　計　一　覧</div>
               </div>
-            ) : previewRows.length === 0 ? (
-              <div className="ep-preview-empty">
-                対象データがありません
+
+              {/* 行2: 作成者 / 対象期間 */}
+              <div className="ep-xls-row ep-xls-row--meta">
+                <div className="ep-xls-meta-left">作成者：管理者</div>
+                <div className="ep-xls-meta-right">
+                  対象期間：{previewMeta.oldest}　〜　{previewMeta.newest}
+                </div>
               </div>
-            ) : (
-              <table className="ep-table">
-                <thead>
-                  <tr>
-                    <th className="ep-th-num">#</th>
-                    {activeCols.map(col => (
-                      <th key={col.key} className={`ep-th ep-th-${col.key}`}>
-                        {col.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewRows.map((row, i) => {
-                    const isIssue = row._rpt?.hasIssue === 'yes';
-                    const isDelay = row._rpt?.hasDelay === 'yes';
-                    const rowClass =
-                      isIssue && isDelay ? 'ep-tr-issue-delay' :
-                      isIssue            ? 'ep-tr-issue'       :
-                      isDelay            ? 'ep-tr-delay'       : '';
-                    return (
-                      <tr key={i} className={rowClass}>
-                        <td className="ep-td-num">{i + 1}</td>
-                        {activeCols.map(col => {
-                          const rawVal = String(row[col.key] ?? '');
-                          // 写真列：URL羅列を件数バッジに変換
-                          if (col.key === 'photos') {
-                            const cnt = rawVal.split('\n').filter(Boolean).length;
+
+              {/* 行3: スペーサー */}
+              <div className="ep-xls-spacer" />
+
+              {/* 行4: 全体サマリー */}
+              <div className="ep-xls-row ep-xls-row--summary">
+                <div className="ep-xls-summary-cell">
+                  全体状況: 総件数 {previewMeta.total}件 ／ 異常なし {previewMeta.noIssue}件 ／ 問題あり {previewMeta.hasIssueCnt}件 ／ 進捗遅延 {previewMeta.delayed}件
+                </div>
+              </div>
+
+              {/* 行5: 案件名別件数 */}
+              <div className="ep-xls-row ep-xls-row--depts">
+                <div className="ep-xls-dept-cell">
+                  案件名別件数: {Object.entries(previewMeta.deptMap).map(([d, n]) => `${d} ${n}件`).join(' ／ ')}
+                </div>
+              </div>
+
+              {/* 行6〜: データテーブル */}
+              {activeCols.length === 0 ? (
+                <div className="ep-preview-empty">左パネルで出力する列を1つ以上選択してください</div>
+              ) : previewRows.length === 0 ? (
+                <div className="ep-preview-empty">対象データがありません</div>
+              ) : (
+                <table className="ep-table">
+                  <thead>
+                    <tr>
+                      <th className="ep-th-num">#</th>
+                      {activeCols.map(col => (
+                        <th key={col.key} className={`ep-th ep-th-${col.key}`}>
+                          {col.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.map((row, i) => {
+                      const isIssue = row._rpt?.hasIssue === 'yes';
+                      const isDelay = row._rpt?.hasDelay === 'yes';
+                      const rowClass =
+                        isIssue && isDelay ? 'ep-tr-issue-delay' :
+                        isIssue            ? 'ep-tr-issue'       :
+                        isDelay            ? 'ep-tr-delay'       : '';
+                      return (
+                        <tr key={i} className={rowClass}>
+                          <td className="ep-td-num">{i + 1}</td>
+                          {activeCols.map(col => {
+                            const rawVal = String(row[col.key] ?? '');
+                            // 写真列：URL羅列を件数バッジに変換
+                            if (col.key === 'photos') {
+                              const cnt = rawVal.split('\n').filter(Boolean).length;
+                              return (
+                                <td key={col.key} className="ep-td ep-td-photos">
+                                  {cnt > 0
+                                    ? <span className="ep-photo-badge"><Camera size={11} /> {cnt}枚</span>
+                                    : <span className="ep-no-photo">—</span>}
+                                </td>
+                              );
+                            }
+                            // 問題の有無：色付きバッジ
+                            if (col.key === 'hasIssue') {
+                              return (
+                                <td key={col.key} className="ep-td ep-td-center">
+                                  <span className={`ep-badge ${rawVal === '問題あり' ? 'ep-badge-alert' : 'ep-badge-ok'}`}>
+                                    {rawVal}
+                                  </span>
+                                </td>
+                              );
+                            }
+                            // 進捗状況：色付きバッジ
+                            if (col.key === 'hasDelay') {
+                              return (
+                                <td key={col.key} className="ep-td ep-td-center">
+                                  <span className={`ep-badge ${rawVal === '遅延あり' ? 'ep-badge-warn' : 'ep-badge-ok'}`}>
+                                    {rawVal}
+                                  </span>
+                                </td>
+                              );
+                            }
+                            // ジャンル：カラーピル
+                            if (col.key === 'genre') {
+                              const genreKey = Object.keys(GENRE_LABELS)
+                                .find(k => GENRE_LABELS[k] === rawVal) ?? '';
+                              return (
+                                <td key={col.key} className="ep-td">
+                                  <span className={`ep-genre-pill ep-genre-${genreKey}`}>{rawVal}</span>
+                                </td>
+                              );
+                            }
+                            // 長文フィールド（報告内容・作業内容）はテキスト折り返し
+                            const isLong = ['findings', 'task_detail', 'symptom', 'action_taken'].includes(col.key);
                             return (
-                              <td key={col.key} className="ep-td ep-td-photos">
-                                {cnt > 0
-                                  ? <span className="ep-photo-badge"><Camera size={11} /> {cnt}枚</span>
-                                  : <span className="ep-no-photo">—</span>}
+                              <td
+                                key={col.key}
+                                className={`ep-td${isLong ? ' ep-td-wrap' : ''}`}
+                                title={isLong ? rawVal : undefined}
+                              >
+                                {rawVal}
                               </td>
                             );
-                          }
-                          // 問題の有無：色付きバッジ
-                          if (col.key === 'hasIssue') {
-                            return (
-                              <td key={col.key} className="ep-td ep-td-center">
-                                <span className={`ep-badge ${rawVal === '問題あり' ? 'ep-badge-alert' : 'ep-badge-ok'}`}>
-                                  {rawVal}
-                                </span>
-                              </td>
-                            );
-                          }
-                          // 進捗状況：色付きバッジ
-                          if (col.key === 'hasDelay') {
-                            return (
-                              <td key={col.key} className="ep-td ep-td-center">
-                                <span className={`ep-badge ${rawVal === '遅延あり' ? 'ep-badge-warn' : 'ep-badge-ok'}`}>
-                                  {rawVal}
-                                </span>
-                              </td>
-                            );
-                          }
-                          // ジャンル：カラーピル
-                          if (col.key === 'genre') {
-                            const genreKey = Object.keys(GENRE_LABELS)
-                              .find(k => GENRE_LABELS[k] === rawVal) ?? '';
-                            return (
-                              <td key={col.key} className="ep-td">
-                                <span className={`ep-genre-pill ep-genre-${genreKey}`}>{rawVal}</span>
-                              </td>
-                            );
-                          }
-                          // 長文フィールド（報告内容・作業内容）はテキスト折り返し
-                          const isLong = ['findings', 'task_detail', 'symptom', 'action_taken'].includes(col.key);
-                          return (
-                            <td
-                              key={col.key}
-                              className={`ep-td${isLong ? ' ep-td-wrap' : ''}`}
-                              title={isLong ? rawVal : undefined}
-                            >
-                              {rawVal}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+
+            </div>{/* /ep-excel-doc */}
           </div>
         </main>
 

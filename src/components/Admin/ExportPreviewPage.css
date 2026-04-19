@@ -466,6 +466,111 @@
   color: var(--text-muted);
 }
 
+/* ══════════════════════════════════════════════════════════
+   Excelドキュメント風プレビュー（行1〜5 + データテーブル）
+   ══════════════════════════════════════════════════════════ */
+.ep-excel-doc {
+  padding: 0;
+  min-width: max-content;
+}
+
+/* 行共通 */
+.ep-xls-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 100%;
+}
+
+/* 行1: タイトル（ネイビー背景） */
+.ep-xls-row--title {
+  background: #1e3a5f;
+  min-height: 44px;
+}
+
+.ep-xls-title-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 8px 24px;
+}
+
+/* 行2: メタデータ（水色背景） */
+.ep-xls-row--meta {
+  background: #e8f0f8;
+  min-height: 28px;
+}
+
+.ep-xls-meta-left {
+  flex: 0 0 38%;
+  display: flex;
+  align-items: center;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  border-right: 1px solid #c5d5e8;
+}
+
+.ep-xls-meta-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+/* 行3: スペーサー */
+.ep-xls-spacer {
+  height: 8px;
+  min-width: 100%;
+  background: #f8fafc;
+  border-top: 1px solid #e8edf2;
+  border-bottom: 1px solid #e8edf2;
+}
+
+/* 行4: サマリー（青枠） */
+.ep-xls-row--summary {
+  background: #eef6ff;
+  border-left: 3px solid #1e3a5f;
+  border-top: 1px solid #93a8c0;
+  border-bottom: 1px solid #93a8c0;
+  min-height: 28px;
+}
+
+.ep-xls-summary-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 4px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  white-space: nowrap;
+}
+
+/* 行5: 案件名別件数 */
+.ep-xls-row--depts {
+  background: #fafbfc;
+  border-bottom: 2.5px solid #1e3a5f;
+  min-height: 26px;
+}
+
+.ep-xls-dept-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
 /* ── レスポンシブ（タブレット以下）─────────────────────────── */
 @media (max-width: 900px) {
   .ep-body {
