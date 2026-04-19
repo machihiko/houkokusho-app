@@ -171,7 +171,7 @@ const ExportPreviewPage = () => {
     });
 
   // ── 認証ガード（全フック呼び出しの後に配置）────────────
-  if (!user || user.role !== 'admin') return <Navigate to="/" replace />;
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) return <Navigate to="/" replace />;
 
   // ── Excel 出力（SingleReportA4Btn の写真ロジックを完全保存）──
   const handleExport = async () => {

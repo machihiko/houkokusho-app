@@ -11,13 +11,23 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 const AppContent = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (!user) {
-    return <Login />;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>読み込み中...</p>
+      </div>
+    );
   }
 
-  return user.role === 'admin' ? <AdminDashboard /> : <ReporterDashboard />;
+  if (!user) return <Login />;
+
+  // role: 'super_admin' | 'admin' → 管理ダッシュボード
+  // role: 'user' → 報告書作成画面
+  return (user.role === 'admin' || user.role === 'super_admin')
+    ? <AdminDashboard />
+    : <ReporterDashboard />;
 };
 
 function App() {

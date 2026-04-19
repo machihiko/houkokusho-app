@@ -1,19 +1,28 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import { ShieldAlert, User, LogIn, Palette } from 'lucide-react';
+import { LogIn, Palette } from 'lucide-react';
 import './Login.css';
 
 const Login = () => {
   const { login } = useAuth();
   const { theme, setTheme, themes } = useTheme();
-  const [userId, setUserId] = useState('');
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState('reporter'); // 'reporter' or 'admin'
+  const [error,    setError]    = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    login(selectedRole);
+    setError('');
+    setIsLoading(true);
+    try {
+      await login(email, password);
+    } catch {
+      setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,36 +53,17 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
-          <div className="role-toggle">
-            <button
-              type="button"
-              className={`role-btn ${selectedRole === 'reporter' ? 'active' : ''}`}
-              onClick={() => setSelectedRole('reporter')}
-            >
-              <User size={18} /> 報告者
-            </button>
-            <button
-              type="button"
-              className={`role-btn ${selectedRole === 'admin' ? 'active' : ''}`}
-              onClick={() => setSelectedRole('admin')}
-            >
-              <ShieldAlert size={18} /> 管理者
-            </button>
-          </div>
-
           <div className="input-group">
-            <label>ユーザーID</label>
+            <label>メールアドレス</label>
             <input
-              type="text"
+              type="email"
               className="input-field"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="user123"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@example.com"
               required
+              autoComplete="email"
               data-gramm="false"
-              data-gramm_editor="false"
-              data-enable-grammarly="false"
-              autoComplete="off"
               data-1p-ignore="true"
             />
           </div>
@@ -87,16 +77,24 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              autoComplete="current-password"
               data-gramm="false"
-              data-gramm_editor="false"
-              data-enable-grammarly="false"
-              autoComplete="new-password"
               data-1p-ignore="true"
             />
           </div>
 
-          <button type="submit" className="btn btn-primary login-submit">
-            <LogIn size={20} /> ログイン
+          {error && (
+            <p style={{ color: '#dc2626', fontSize: '0.875rem', margin: '0' }}>
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="btn btn-primary login-submit"
+            disabled={isLoading}
+          >
+            <LogIn size={20} /> {isLoading ? 'ログイン中...' : 'ログイン'}
           </button>
         </form>
       </div>

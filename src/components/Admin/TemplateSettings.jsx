@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Pencil, Trash2, Save, ChevronLeft, Copy } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
+import { useAuth } from '../../hooks/useAuth';
 import {
   DEFAULT_CELL_MAPPING,
   MOCK_TEMPLATES,
@@ -42,6 +43,7 @@ const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 //  @param onClose  閉じるコールバック
 // ══════════════════════════════════════════════════════
 const TemplateSettings = ({ onClose }) => {
+  const { user } = useAuth();
   const [templates, setTemplates] = useState([]);
   const [view,      setView]      = useState('list'); // 'list' | 'edit'
   const [draft,     setDraft]     = useState(null);   // 編集中テンプレートのコピー
@@ -68,6 +70,7 @@ const TemplateSettings = ({ onClose }) => {
           .insert({
             template_name: 'デフォルトフォーマット（V5）',
             cell_mapping:  DEFAULT_CELL_MAPPING,
+            company_id:    user?.companyId ?? null,
           })
           .select()
           .single();
@@ -116,6 +119,7 @@ const TemplateSettings = ({ onClose }) => {
       .insert({
         template_name: `${tpl.template_name}（コピー）`,
         cell_mapping:  normalizeTemplateMapping(tpl.cell_mapping),
+        company_id:    user?.companyId ?? null,
       })
       .select()
       .single();
@@ -157,6 +161,7 @@ const TemplateSettings = ({ onClose }) => {
         .insert({
           template_name: draft.template_name,
           cell_mapping: normalizeTemplateMapping(draft.cell_mapping),
+          company_id:   user?.companyId ?? null,
         })
         .select()
         .single();

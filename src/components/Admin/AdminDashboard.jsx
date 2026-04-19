@@ -333,13 +333,15 @@ const AdminDashboard = () => {
           <p className="subtitle">{user?.name} ログイン中</p>
         </div>
         <div className="admin-header-actions">
-          <button
-            className="btn btn-outline"
-            onClick={() => setShowTemplateSettings(true)}
-            title="Excelテンプレートのセルマッピングを設定"
-          >
-            Excelテンプレート設定
-          </button>
+          {(user?.role === 'admin' || user?.role === 'super_admin') && (
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowTemplateSettings(true)}
+              title="Excelテンプレートのセルマッピングを設定"
+            >
+              Excelテンプレート設定
+            </button>
+          )}
           <button className="btn btn-outline logout-btn" onClick={logout}>
             <LogOut size={16} /> ログアウト
           </button>

@@ -98,7 +98,7 @@ const SingleExportPreviewPage = () => {
   }, []);
 
   // ── 認証ガード（フック呼び出しの後に配置）────────────────
-  if (!user || user.role !== 'admin') return <Navigate to="/" replace />;
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) return <Navigate to="/" replace />;
 
   // ── データなし（直接URLアクセスなど）────────────────────
   if (!rpt) {

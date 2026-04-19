@@ -222,7 +222,7 @@ const ReporterDashboard = () => {
 
       // ③ 新規 INSERT（area も保存） → departments state に追加 → departmentId をセット
       const { data: newDept, error } = await supabase
-        .from('departments').insert({ name: trimmed, area: currentArea }).select('id, name').single();
+        .from('departments').insert({ name: trimmed, area: currentArea, company_id: user?.companyId ?? null }).select('id, name').single();
       if (error) { alert('案件名の追加に失敗しました: ' + error.message); return; }
       const newEntry = { id: newDept.id, name: newDept.name, area: currentArea };
       setDepartments(prev => [...prev, newEntry]);
@@ -295,7 +295,7 @@ const ReporterDashboard = () => {
         return;
       }
       const { data: newPlace, error } = await supabase
-        .from('target_places').insert({ name: trimmed }).select('id, name').single();
+        .from('target_places').insert({ name: trimmed, company_id: user?.companyId ?? null }).select('id, name').single();
       if (error) { alert('追加に失敗しました: ' + error.message); return; }
       setTargetPlaces(prev => [...prev, newPlace].sort((a, b) => a.name.localeCompare(b.name, 'ja')));
       setTasks(prev => prev.map((t, i) => {
@@ -577,7 +577,7 @@ const ReporterDashboard = () => {
         const locName = commonData.locationName.trim();
         if (!locName) { alert('新しい現場名を入力してください。'); return; }
         const { data: newLoc, error: locErr } = await supabase
-          .from('locations').insert({ name: locName, area: commonData.selectedArea || null }).select('id').single();
+          .from('locations').insert({ name: locName, area: commonData.selectedArea || null, company_id: user?.companyId ?? null }).select('id').single();
         if (locErr) { alert('現場の追加に失敗しました: ' + locErr.message); return; }
         finalLocationId = newLoc.id;
         setLocations(prev => [...prev, { id: newLoc.id, name: locName, area: commonData.selectedArea || null }]);
@@ -597,6 +597,7 @@ const ReporterDashboard = () => {
           co_workers: commonData.coWorkers.length > 0 ? commonData.coWorkers : null,
           is_on_schedule: commonData.isOnSchedule,
           delay_reason: commonData.isOnSchedule ? null : (commonData.delayReason.trim() || null),
+          company_id: user?.companyId ?? null,
         })
         .select('id')
         .single();
@@ -775,12 +776,14 @@ const ReporterDashboard = () => {
               <>
                 <button type="button" className="btn-select-action" title="担当場所を追加"
                   onClick={() => handleAddTargetPlace(idx)}>＋</button>
-                <button type="button" className="btn-select-action" title="名前を変更"
-                  disabled={!isDbEntry}
-                  onClick={() => handleEditTargetPlace(keyValue, cf[txtField])}>⚙</button>
-                <button type="button" className="btn-select-action btn-select-action--danger" title="削除"
-                  disabled={!isDbEntry}
-                  onClick={() => handleDeleteTargetPlace(keyValue, cf[txtField])}>🗑</button>
+                {user?.role !== 'user' && (<>
+                  <button type="button" className="btn-select-action" title="名前を変更"
+                    disabled={!isDbEntry}
+                    onClick={() => handleEditTargetPlace(keyValue, cf[txtField])}>⚙</button>
+                  <button type="button" className="btn-select-action btn-select-action--danger" title="削除"
+                    disabled={!isDbEntry}
+                    onClick={() => handleDeleteTargetPlace(keyValue, cf[txtField])}>🗑</button>
+                </>)}
               </>
             )}
           </div>
@@ -1222,12 +1225,14 @@ const ReporterDashboard = () => {
                 }
               </select>
               <button type="button" className="btn-select-action" title="案件名を追加" onClick={handleAddDept}>＋</button>
-              <button type="button" className="btn-select-action" title="案件名を編集"
-                disabled={!departments.find(d => d.id === commonData.departmentId)}
-                onClick={handleEditDept}>⚙</button>
-              <button type="button" className="btn-select-action btn-select-action--danger" title="案件名を削除"
-                disabled={!departments.find(d => d.id === commonData.departmentId)}
-                onClick={handleDeleteDept}>🗑</button>
+              {user?.role !== 'user' && (<>
+                <button type="button" className="btn-select-action" title="案件名を編集"
+                  disabled={!departments.find(d => d.id === commonData.departmentId)}
+                  onClick={handleEditDept}>⚙</button>
+                <button type="button" className="btn-select-action btn-select-action--danger" title="案件名を削除"
+                  disabled={!departments.find(d => d.id === commonData.departmentId)}
+                  onClick={handleDeleteDept}>🗑</button>
+              </>)}
             </div>
           </div>
 
