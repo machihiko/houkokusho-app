@@ -36,6 +36,10 @@ export const compressImage = (file, maxWidth = 1200, quality = 0.8) =>
         canvas.height = outH;
 
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
         ctx.drawImage(img, 0, 0, outW, outH);
 
         canvas.toBlob(

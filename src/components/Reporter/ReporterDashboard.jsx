@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import EmergencyModal from './EmergencyModal';
 import PhotoUploader from './PhotoUploader';
 import PreviewScreen from './PreviewScreen';
 import VoiceInput from './VoiceInput';
-import { Save, Send, LogOut, AlertTriangle, Plus, X, Clock, Users } from 'lucide-react';
+import { Save, Send, LogOut, Plus, X, Clock, Users } from 'lucide-react';
 import './ReporterDashboard.css';
 import { supabase } from '../../utils/supabaseClient';
 import { GENRES } from '../../constants/genres';
@@ -64,7 +63,6 @@ const createTask = () => ({
 // ══════════════════════════════════════════════════════
 const ReporterDashboard = () => {
   const { logout, user } = useAuth();
-  const [showEmergency,      setShowEmergency]      = useState(false);
   // ユーザーが追加したカスタムジャンル（localStorage に永続化）
   const [customGenres, setCustomGenres] = useState(() => {
     try {
@@ -194,66 +192,79 @@ const ReporterDashboard = () => {
 
   // ── 案件名追加（即時 DB INSERT）──────────────────────
   const handleAddDept = async () => {
-    const name = window.prompt('新しい案件名を入力してください');
-    if (!name?.trim()) return;
-    const trimmed = name.trim();
-    const currentArea = commonData.selectedArea || null;
+    try {
+      const name = window.prompt('新しい案件名を入力してください');
+      if (!name?.trim()) return;
+      const trimmed = name.trim();
+      const currentArea = commonData.selectedArea || null;
 
-    // ① ローカルキャッシュ（departments state）で重複チェック
-    const existingInDB = departments.find(d =>
-      d.name.trim().toLowerCase() === trimmed.toLowerCase()
-      && (!currentArea || !d.area || d.area === currentArea)
-    );
-    if (existingInDB) {
-      setCommonData(prev => ({ ...prev, departmentId: existingInDB.id, departmentName: existingInDB.name }));
-      return;
-    }
-
-    // ② DB に重複チェック（unique 制約エラーを防ぐ）
-    const { data: dupRows } = await supabase
-      .from('departments').select('id, name').ilike('name', trimmed).limit(1);
-    if (dupRows?.length > 0) {
-      const dup = dupRows[0];
-      setDepartments(prev =>
-        prev.some(d => d.id === dup.id) ? prev : [...prev, { id: dup.id, name: dup.name, area: currentArea }]
+      // ① ローカルキャッシュ（departments state）で重複チェック
+      const existingInDB = departments.find(d =>
+        d.name.trim().toLowerCase() === trimmed.toLowerCase()
+        && (!currentArea || !d.area || d.area === currentArea)
       );
-      setCommonData(prev => ({ ...prev, departmentId: dup.id, departmentName: dup.name }));
-      return;
-    }
+      if (existingInDB) {
+        setCommonData(prev => ({ ...prev, departmentId: existingInDB.id, departmentName: existingInDB.name }));
+        return;
+      }
 
-    // ③ 新規 INSERT（area も保存） → departments state に追加 → departmentId をセット
-    const { data: newDept, error } = await supabase
-      .from('departments').insert({ name: trimmed, area: currentArea }).select('id, name').single();
-    if (error) { alert('案件名の追加に失敗しました: ' + error.message); return; }
-    // 新エントリを変数に確定させてから両 state を更新（React 18 バッチ）
-    const newEntry = { id: newDept.id, name: newDept.name, area: currentArea };
-    setDepartments(prev => [...prev, newEntry]);
-    setCommonData(prev => ({ ...prev, departmentId: newEntry.id, departmentName: newEntry.name }));
+      // ② DB に重複チェック（unique 制約エラーを防ぐ）
+      const { data: dupRows } = await supabase
+        .from('departments').select('id, name').ilike('name', trimmed).limit(1);
+      if (dupRows?.length > 0) {
+        const dup = dupRows[0];
+        setDepartments(prev =>
+          prev.some(d => d.id === dup.id) ? prev : [...prev, { id: dup.id, name: dup.name, area: currentArea }]
+        );
+        setCommonData(prev => ({ ...prev, departmentId: dup.id, departmentName: dup.name }));
+        return;
+      }
+
+      // ③ 新規 INSERT（area も保存） → departments state に追加 → departmentId をセット
+      const { data: newDept, error } = await supabase
+        .from('departments').insert({ name: trimmed, area: currentArea }).select('id, name').single();
+      if (error) { alert('案件名の追加に失敗しました: ' + error.message); return; }
+      const newEntry = { id: newDept.id, name: newDept.name, area: currentArea };
+      setDepartments(prev => [...prev, newEntry]);
+      setCommonData(prev => ({ ...prev, departmentId: newEntry.id, departmentName: newEntry.name }));
+    } catch (error) {
+      console.error('[Department] 追加失敗:', error);
+      alert('エラーが発生しました');
+    }
   };
 
   // ── 案件名編集（DB UPDATE）───────────────────────────
   const handleEditDept = async () => {
-    // departments state に存在するエントリのみ編集可（MOCK 除外）
-    if (!commonData.departmentId || !departments.find(d => d.id === commonData.departmentId)) return;
-    const newName = window.prompt('案件名を変更してください', commonData.departmentName);
-    if (!newName?.trim() || newName.trim() === commonData.departmentName) return;
-    const trimmed = newName.trim();
-    const { error } = await supabase
-      .from('departments').update({ name: trimmed }).eq('id', commonData.departmentId);
-    if (error) { alert('更新に失敗しました: ' + error.message); return; }
-    setDepartments(prev => prev.map(d => d.id === commonData.departmentId ? { ...d, name: trimmed } : d));
-    setCommonData(prev => ({ ...prev, departmentName: trimmed }));
+    try {
+      if (!commonData.departmentId || !departments.find(d => d.id === commonData.departmentId)) return;
+      const newName = window.prompt('案件名を変更してください', commonData.departmentName);
+      if (!newName?.trim() || newName.trim() === commonData.departmentName) return;
+      const trimmed = newName.trim();
+      const { error } = await supabase
+        .from('departments').update({ name: trimmed }).eq('id', commonData.departmentId);
+      if (error) { alert('更新に失敗しました: ' + error.message); return; }
+      setDepartments(prev => prev.map(d => d.id === commonData.departmentId ? { ...d, name: trimmed } : d));
+      setCommonData(prev => ({ ...prev, departmentName: trimmed }));
+    } catch (error) {
+      console.error('[Department] 更新失敗:', error);
+      alert('エラーが発生しました');
+    }
   };
 
   // ── 案件名削除（DB DELETE）─────────────────────────
   const handleDeleteDept = async () => {
-    if (!commonData.departmentId || !departments.find(d => d.id === commonData.departmentId)) return;
-    if (!window.confirm(`「${commonData.departmentName}」を削除しますか？`)) return;
-    const { error } = await supabase
-      .from('departments').delete().eq('id', commonData.departmentId);
-    if (error) { alert('削除に失敗しました: ' + error.message); return; }
-    setDepartments(prev => prev.filter(d => d.id !== commonData.departmentId));
-    setCommonData(prev => ({ ...prev, departmentId: '', departmentName: '' }));
+    try {
+      if (!commonData.departmentId || !departments.find(d => d.id === commonData.departmentId)) return;
+      if (!window.confirm(`「${commonData.departmentName}」を削除しますか？`)) return;
+      const { error } = await supabase
+        .from('departments').delete().eq('id', commonData.departmentId);
+      if (error) { alert('削除に失敗しました: ' + error.message); return; }
+      setDepartments(prev => prev.filter(d => d.id !== commonData.departmentId));
+      setCommonData(prev => ({ ...prev, departmentId: '', departmentName: '' }));
+    } catch (error) {
+      console.error('[Department] 削除失敗:', error);
+      alert('エラーが発生しました');
+    }
   };
 
   // ── 担当場所マスタ（target_places テーブル）────────
@@ -262,76 +273,85 @@ const ReporterDashboard = () => {
 
   // ── 担当場所を追加（DB INSERT）─────────────────────
   const handleAddTargetPlace = async (taskIdx) => {
-    const name = window.prompt('新しい担当場所を入力してください');
-    if (!name?.trim()) return;
-    const trimmed = name.trim();
-    // 重複チェック（DB + ローカルキャッシュ）
-    const existing = targetPlaces.find(
-      p => p.name.trim().toLowerCase() === trimmed.toLowerCase()
-    );
-    if (existing) {
-      // 既存エントリを選択（functional update で stale 回避）
+    try {
+      const name = window.prompt('新しい担当場所を入力してください');
+      if (!name?.trim()) return;
+      const trimmed = name.trim();
+      const existing = targetPlaces.find(
+        p => p.name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (existing) {
+        setTasks(prev => prev.map((t, i) => {
+          if (i !== taskIdx) return t;
+          return {
+            ...t,
+            customFields: {
+              ...(t.customFields ?? {}),
+              target_place_key: existing.id,
+              target_place: existing.name,
+            },
+          };
+        }));
+        return;
+      }
+      const { data: newPlace, error } = await supabase
+        .from('target_places').insert({ name: trimmed }).select('id, name').single();
+      if (error) { alert('追加に失敗しました: ' + error.message); return; }
+      setTargetPlaces(prev => [...prev, newPlace].sort((a, b) => a.name.localeCompare(b.name, 'ja')));
       setTasks(prev => prev.map((t, i) => {
         if (i !== taskIdx) return t;
         return {
           ...t,
           customFields: {
             ...(t.customFields ?? {}),
-            target_place_key: existing.id,
-            target_place:     existing.name,
+            target_place_key: newPlace.id,
+            target_place: newPlace.name,
           },
         };
       }));
-      return;
+    } catch (error) {
+      console.error('[TargetPlace] 追加失敗:', error);
+      alert('エラーが発生しました');
     }
-    const { data: newPlace, error } = await supabase
-      .from('target_places').insert({ name: trimmed }).select('id, name').single();
-    if (error) { alert('追加に失敗しました: ' + error.message); return; }
-    // setTargetPlaces と setTasks を同一レンダーに収める（React 18 バッチ）
-    // setTasks は functional update を使い、await 後の stale closure を防ぐ
-    setTargetPlaces(prev => [...prev, newPlace].sort((a, b) => a.name.localeCompare(b.name, 'ja')));
-    setTasks(prev => prev.map((t, i) => {
-      if (i !== taskIdx) return t;
-      return {
-        ...t,
-        customFields: {
-          ...(t.customFields ?? {}),
-          target_place_key: newPlace.id,
-          target_place:     newPlace.name,
-        },
-      };
-    }));
   };
 
   // ── 担当場所を編集（DB UPDATE）─────────────────────
   const handleEditTargetPlace = async (placeId, currentName) => {
-    const newName = window.prompt('担当場所名を変更してください', currentName);
-    if (!newName?.trim() || newName.trim() === currentName) return;
-    const trimmed = newName.trim();
-    const { error } = await supabase
-      .from('target_places').update({ name: trimmed }).eq('id', placeId);
-    if (error) { alert('更新に失敗しました: ' + error.message); return; }
-    setTargetPlaces(prev => prev.map(p => p.id === placeId ? { ...p, name: trimmed } : p));
-    // この場所を選択中の全タスクも同時に更新
-    setTasks(prev => prev.map(t =>
-      t.customFields?.target_place_key === placeId
-        ? { ...t, customFields: { ...t.customFields, target_place: trimmed } }
-        : t
-    ));
+    try {
+      const newName = window.prompt('担当場所名を変更してください', currentName);
+      if (!newName?.trim() || newName.trim() === currentName) return;
+      const trimmed = newName.trim();
+      const { error } = await supabase
+        .from('target_places').update({ name: trimmed }).eq('id', placeId);
+      if (error) { alert('更新に失敗しました: ' + error.message); return; }
+      setTargetPlaces(prev => prev.map(p => p.id === placeId ? { ...p, name: trimmed } : p));
+      setTasks(prev => prev.map(t =>
+        t.customFields?.target_place_key === placeId
+          ? { ...t, customFields: { ...t.customFields, target_place: trimmed } }
+          : t
+      ));
+    } catch (error) {
+      console.error('[TargetPlace] 更新失敗:', error);
+      alert('エラーが発生しました');
+    }
   };
 
   // ── 担当場所を削除（DB DELETE）─────────────────────
   const handleDeleteTargetPlace = async (placeId, currentName) => {
-    if (!window.confirm(`「${currentName}」を担当場所リストから削除しますか？`)) return;
-    const { error } = await supabase.from('target_places').delete().eq('id', placeId);
-    if (error) { alert('削除に失敗しました: ' + error.message); return; }
-    setTargetPlaces(prev => prev.filter(p => p.id !== placeId));
-    // この場所を選択中の全タスクをリセット
-    setTasks(prev => prev.map(t =>
-      t.customFields?.target_place_key === placeId
-        ? { ...t, customFields: { ...t.customFields, target_place_key: '', target_place: '' } }
-        : t
-    ));
+    try {
+      if (!window.confirm(`「${currentName}」を担当場所リストから削除しますか？`)) return;
+      const { error } = await supabase.from('target_places').delete().eq('id', placeId);
+      if (error) { alert('削除に失敗しました: ' + error.message); return; }
+      setTargetPlaces(prev => prev.filter(p => p.id !== placeId));
+      setTasks(prev => prev.map(t =>
+        t.customFields?.target_place_key === placeId
+          ? { ...t, customFields: { ...t.customFields, target_place_key: '', target_place: '' } }
+          : t
+      ));
+    } catch (error) {
+      console.error('[TargetPlace] 削除失敗:', error);
+      alert('エラーが発生しました');
+    }
   };
 
   // ── マスタデータ取得 ──────────────────────────────
@@ -548,132 +568,124 @@ const ReporterDashboard = () => {
 
   // ── 送信（V2: reports → report_tasks → photos）────
   const handleConfirm = async () => {
-    // ── 新規現場の登録（「その他」選択時）──────────────
-    let finalLocationId   = commonData.locationId   || null;
-    let finalDepartmentId = commonData.departmentId || null;
+    try {
+      let finalLocationId   = commonData.locationId   || null;
+      let finalDepartmentId = commonData.departmentId || null;
 
-    const isNewLoc = commonData.locationId?.startsWith('local_loc_');
-    if (isNewLoc) {
-      const locName = commonData.locationName.trim();
-      if (!locName) { alert('新しい現場名を入力してください。'); return; }
-      const { data: newLoc, error: locErr } = await supabase
-        .from('locations').insert({ name: locName, area: commonData.selectedArea || null }).select('id').single();
-      if (locErr) { alert('現場の追加に失敗しました: ' + locErr.message); return; }
-      finalLocationId = newLoc.id;
-      setLocations(prev => [...prev, { id: newLoc.id, name: locName, area: commonData.selectedArea || null }]);
-      setLocalNewLocations(prev => prev.map(l => l.name === locName ? { ...l, id: newLoc.id } : l));
-      setCommonData(prev => ({ ...prev, locationId: newLoc.id, locationName: locName }));
-    }
+      const isNewLoc = commonData.locationId?.startsWith('local_loc_');
+      if (isNewLoc) {
+        const locName = commonData.locationName.trim();
+        if (!locName) { alert('新しい現場名を入力してください。'); return; }
+        const { data: newLoc, error: locErr } = await supabase
+          .from('locations').insert({ name: locName, area: commonData.selectedArea || null }).select('id').single();
+        if (locErr) { alert('現場の追加に失敗しました: ' + locErr.message); return; }
+        finalLocationId = newLoc.id;
+        setLocations(prev => [...prev, { id: newLoc.id, name: locName, area: commonData.selectedArea || null }]);
+        setLocalNewLocations(prev => prev.map(l => l.name === locName ? { ...l, id: newLoc.id } : l));
+        setCommonData(prev => ({ ...prev, locationId: newLoc.id, locationName: locName }));
+      }
 
-    // ① reports（親）を1件 INSERT
-    const { data: reportRow, error: reportError } = await supabase
-      .from('reports')
-      .insert({
-        work_date:      commonData.date,
-        start_time:     commonData.startTime  || null,
-        end_time:       commonData.endTime    || null,
-        location_id:    finalLocationId,
-        department_id:  finalDepartmentId,
-        reporter_id:    reporterId || null,
-        co_workers:     commonData.coWorkers.length > 0 ? commonData.coWorkers : null,
-        is_on_schedule: commonData.isOnSchedule,
-        delay_reason:   commonData.isOnSchedule ? null : (commonData.delayReason.trim() || null),
-      })
-      .select('id')
-      .single();
-
-    if (reportError) {
-      alert('報告書の保存に失敗しました。\n' + reportError.message);
-      return;
-    }
-    const reportId = reportRow.id;
-
-    // ② report_tasks（子）を各タスクごとに INSERT → ③ photos（孫）をアップロード＆INSERT
-    const photoFailures = []; // 失敗した写真のファイル名を蓄積
-
-    for (let tIdx = 0; tIdx < tasks.length; tIdx++) {
-      const task        = tasks[tIdx];
-      const taskLabel   = tasks.length > 1 ? `作業${tIdx + 1}` : '作業';
-
-      // ── ② report_tasks INSERT（スキーマ駆動: customFields から custom_data を自動生成）
-      // _key サフィックスのエントリ（select 選択値）と空値は除外し、テキスト値のみ保存
-      const customData = Object.fromEntries(
-        Object.entries(task.customFields ?? {})
-          .filter(([k, v]) => !k.endsWith('_key') && v?.trim?.())
-          .map(([k, v]) => [k, v.trim()])
-      );
-
-      const { data: taskRow, error: taskError } = await supabase
-        .from('report_tasks')
+      const { data: reportRow, error: reportError } = await supabase
+        .from('reports')
         .insert({
-          report_id:   reportId,
-          genre:       task.genre,
-          has_problem: task.genre === 'emergency' ? true : task.hasProblem,
-          findings:    task.findings.trim() || null,
-          custom_data: Object.keys(customData).length > 0 ? customData : null,
+          work_date: commonData.date,
+          start_time: commonData.startTime || null,
+          end_time: commonData.endTime || null,
+          location_id: finalLocationId,
+          department_id: finalDepartmentId,
+          reporter_id: reporterId || null,
+          co_workers: commonData.coWorkers.length > 0 ? commonData.coWorkers : null,
+          is_on_schedule: commonData.isOnSchedule,
+          delay_reason: commonData.isOnSchedule ? null : (commonData.delayReason.trim() || null),
         })
         .select('id')
         .single();
 
-      if (taskError) {
-        alert(`${taskLabel}の保存に失敗しました。\n${taskError.message}`);
+      if (reportError) {
+        alert('報告書の保存に失敗しました。\n' + reportError.message);
         return;
       }
-      const taskId = taskRow.id; // ← 写真に紐付ける task_id（UUID）
+      const reportId = reportRow.id;
+      const photoFailures = [];
 
-      // ── ③ 写真ごとにアップロード → photos INSERT ─────
-      for (let pIdx = 0; pIdx < task.photos.length; pIdx++) {
-        const photo = task.photos[pIdx];
+      for (let tIdx = 0; tIdx < tasks.length; tIdx++) {
+        const task      = tasks[tIdx];
+        const taskLabel = tasks.length > 1 ? `作業${tIdx + 1}` : '作業';
+        const customData = Object.fromEntries(
+          Object.entries(task.customFields ?? {})
+            .filter(([k, v]) => !k.endsWith('_key') && v?.trim?.())
+            .map(([k, v]) => [k, v.trim()])
+        );
 
-        // file プロパティが存在しない場合はスキップ（自動保存復元時など）
-        if (!photo.file) {
-          console.warn(`[写真] ${taskLabel}-写真${pIdx + 1}: file が存在しないためスキップ`);
-          continue;
+        const { data: taskRow, error: taskError } = await supabase
+          .from('report_tasks')
+          .insert({
+            report_id: reportId,
+            genre: task.genre,
+            has_problem: task.genre === 'emergency' ? true : task.hasProblem,
+            findings: task.findings.trim() || null,
+            custom_data: Object.keys(customData).length > 0 ? customData : null,
+          })
+          .select('id')
+          .single();
+
+        if (taskError) {
+          alert(`${taskLabel}の保存に失敗しました。\n${taskError.message}`);
+          return;
         }
+        const taskId = taskRow.id;
 
-        // 拡張子を安全に取得
-        const rawExt   = (photo.name ?? '').split('.').pop();
-        const ext      = /^[a-zA-Z0-9]+$/.test(rawExt) ? rawExt.toLowerCase() : 'jpg';
-        const rand     = Math.random().toString(36).slice(2, 10);
-        const filePath = `${reportId}/${taskId}/${Date.now()}_${rand}.${ext}`;
+        for (let pIdx = 0; pIdx < task.photos.length; pIdx++) {
+          const photo = task.photos[pIdx];
 
-        // Storage へアップロード
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(filePath, photo.file, { upsert: false });
+          if (!photo.file) {
+            console.warn(`[写真] ${taskLabel}-写真${pIdx + 1}: file が存在しないためスキップ`);
+            continue;
+          }
 
-        if (uploadError) {
-          console.error(`[Supabase] ${taskLabel}-写真${pIdx + 1} アップロード失敗:`, uploadError.message);
-          photoFailures.push(`${taskLabel}-写真${pIdx + 1}（${uploadError.message}）`);
-          continue; // 1枚失敗しても他の写真を続行
-        }
+          const rawExt   = (photo.name ?? '').split('.').pop();
+          const ext      = /^[a-zA-Z0-9]+$/.test(rawExt) ? rawExt.toLowerCase() : 'jpg';
+          const rand     = Math.random().toString(36).slice(2, 10);
+          const filePath = `${reportId}/${taskId}/${Date.now()}_${rand}.${ext}`;
 
-        // 公開URLを取得して photos テーブルに INSERT（task_id で紐付け）
-        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filePath);
-        const { error: insertError } = await supabase.from('photos').insert({
-          task_id:   taskId,
-          photo_url: urlData.publicUrl,
-        });
+          const { error: uploadError } = await supabase.storage
+            .from('photos')
+            .upload(filePath, photo.file, { upsert: false });
 
-        if (insertError) {
-          console.error(`[Supabase] ${taskLabel}-写真${pIdx + 1} DB登録失敗:`, insertError.message);
-          photoFailures.push(`${taskLabel}-写真${pIdx + 1}（${insertError.message}）`);
+          if (uploadError) {
+            console.error(`[Supabase] ${taskLabel}-写真${pIdx + 1} アップロード失敗:`, uploadError.message);
+            photoFailures.push(`${taskLabel}-写真${pIdx + 1}（${uploadError.message}）`);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filePath);
+          const { error: insertError } = await supabase.from('photos').insert({
+            task_id: taskId,
+            photo_url: urlData.publicUrl,
+          });
+
+          if (insertError) {
+            console.error(`[Supabase] ${taskLabel}-写真${pIdx + 1} DB登録失敗:`, insertError.message);
+            photoFailures.push(`${taskLabel}-写真${pIdx + 1}（${insertError.message}）`);
+          }
         }
       }
-    }
 
-    // 写真の失敗があれば報告（報告書本体は保存済み）
-    if (photoFailures.length > 0) {
-      alert(
-        `報告書を送信しました（作業 ${tasks.length} 件）。\n\n` +
-        `※以下の写真の保存に失敗しました。写真以外のデータは保存済みです。\n` +
-        photoFailures.join('\n')
-      );
-    } else {
-      alert(`報告書を送信しました！（作業 ${tasks.length} 件）`);
+      if (photoFailures.length > 0) {
+        alert(
+          `報告書を送信しました（作業 ${tasks.length} 件）。\n\n` +
+          `※以下の写真の保存に失敗しました。写真以外のデータは保存済みです。\n` +
+          photoFailures.join('\n')
+        );
+      } else {
+        alert(`報告書を送信しました！（作業 ${tasks.length} 件）`);
+      }
+      localStorage.removeItem('re_report_autosave');
+      window.location.reload();
+    } catch (error) {
+      console.error('[Report] 送信失敗:', error);
+      alert('エラーが発生しました');
     }
-    localStorage.removeItem('re_report_autosave');
-    window.location.reload();
   };
 
   // ── プレビュー表示中 ──────────────────────────────
@@ -1000,8 +1012,6 @@ const ReporterDashboard = () => {
   // ── メインレンダー ────────────────────────────────
   return (
     <div className="reporter-container">
-      {showEmergency && <EmergencyModal onClose={() => setShowEmergency(false)} />}
-
       {showRecoveryDialog && (
         <div className="recovery-dialog glass-panel">
           <h3><Save size={18} /> 前回の入力データがあります</h3>

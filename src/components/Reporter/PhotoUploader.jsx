@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import exifr from 'exifr';
 import { Camera, X, Image } from 'lucide-react';
 import { correctOrientation } from '../../utils/correctOrientation';
@@ -22,6 +22,23 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
   // 2種類のファイル入力への参照（capture 属性の有無で分ける）
   const cameraInputRef  = useRef(null);
   const libraryInputRef = useRef(null);
+  const isMountedRef    = useRef(true);
+  const photosRef       = useRef(photos);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      photosRef.current.forEach((photo) => {
+        if (photo?.url?.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.url);
+        }
+      });
+    };
+  }, []);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
@@ -62,13 +79,25 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
             `作業日（${toDisplayDate(currentDate)}）と異なります。\n\n` +
             `このまま追加しますか？`
           );
-          if (!ok) continue; // キャンセル → この写真をスキップ
+          if (!ok) {
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+            continue;
+          }
         }
         // dates match → そのまま追加
       }
 
       // プレビューは向き補正済みURL、アップロードは圧縮済みFile
       newPhotos.push({ file: compressedFile, url, name: file.name });
+    }
+
+    if (!isMountedRef.current) {
+      newPhotos.forEach((photo) => {
+        if (photo?.url?.startsWith('blob:')) {
+          URL.revokeObjectURL(photo.url);
+        }
+      });
+      return;
     }
 
     setIsCompressing(false);
@@ -87,6 +116,10 @@ const PhotoUploader = ({ photos, setPhotos, onDateExtracted, currentDate = '' })
   };
 
   const removePhoto = (index) => {
+    const removedPhoto = photos[index];
+    if (removedPhoto?.url?.startsWith('blob:')) {
+      URL.revokeObjectURL(removedPhoto.url);
+    }
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
